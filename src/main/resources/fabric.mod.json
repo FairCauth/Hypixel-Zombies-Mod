@@ -1,0 +1,38 @@
+{
+	"schemaVersion": 1,
+	"id": "zombies-mod",
+	"version": "${version}",
+	"name": "Zombies-Mod",
+	"description": "Hypixel Zombies Mod",
+	"authors": [
+		"FairCauth"
+	],
+	"contact": {
+		"homepage": "https://fabricmc.net/",
+		"sources": "https://github.com/FabricMC/fabric-example-mod"
+	},
+	"license": "CC0-1.0",
+	"icon": "assets/zombies-mod/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.example.ZombiesMod"
+		],
+		"client": [
+			"com.example.client.ZombiesModClient"
+		]
+	},
+	"mixins": [
+		"zombies-mod.mixins.json",
+		{
+			"config": "zombies-mod.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.19.2",
+		"minecraft": "~26.1.2",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}
