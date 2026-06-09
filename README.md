@@ -1,9 +1,15 @@
-# Zombies-Mod
+# Hypixel Zombies Mod
+Hypixe僵尸末日辅助Mod
 
-## Setup
+### 截图
+![截图](assets/screenshot.png)
 
-For setup instructions, please see the [Fabric Documentation page](https://docs.fabricmc.net/develop/getting-started/creating-a-project#setting-up) related to the IDE that you are using.
-
-## License
-
-This template is available under the CC0 license. Feel free to learn from it and incorporate it in your own projects.
+## Feature
+| Module | Description |
+|------|---------|
+| Auto Switch Weapon | 右键自动切换枪械 |
+| Hide Blocking Player | 重叠时隐藏玩家 | 
+| No Fire Effect | 去除燃烧特效 |
+| Right Clicker | 右键连点器 |
+| Sprint | 强制疾跑 |
+| Target Hud | 显示目标血量信息 |
