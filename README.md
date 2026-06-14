@@ -13,3 +13,6 @@ Hypixe僵尸末日辅助Mod
 | Right Clicker | 右键连点器 |
 | Sprint | 强制疾跑 |
 | Target Hud | 显示目标血量信息 |
+| Teammate Glow | 队友高亮显示 |
+| DPSCounter | DPS计算 |
+
