@@ -16,7 +16,6 @@ import org.lwjgl.glfw.GLFW;
 
 public class ZombiesModClient implements ClientModInitializer, IMinecraft {
 	public static ModuleManager moduleManager;
-	public static boolean modEnabled = true;
 
 	public static int guiKey = GLFW.GLFW_KEY_RIGHT_SHIFT;
 	@Override

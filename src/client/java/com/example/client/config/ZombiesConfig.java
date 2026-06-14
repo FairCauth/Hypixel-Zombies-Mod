@@ -38,7 +38,7 @@ public class ZombiesConfig {
             JsonObject root = JsonParser.parseString(json).getAsJsonObject();
 
             if (root.has("modEnabled")) {
-                ZombiesModClient.modEnabled = root.get("modEnabled").getAsBoolean();
+                ZombiesModClient.guiKey = root.get("guiKey").getAsInt();
             }
 
             if (root.has("guiKey")) {
@@ -116,7 +116,6 @@ public class ZombiesConfig {
         try {
             JsonObject root = new JsonObject();
 
-            root.addProperty("modEnabled", ZombiesModClient.modEnabled);
             root.addProperty("guiKey", ZombiesModClient.guiKey);
 
             JsonObject modulesJson = new JsonObject();
