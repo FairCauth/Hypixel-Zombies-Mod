@@ -1,5 +1,6 @@
-package com.example.client;
+package com.example.client.config;
 
+import com.example.client.ZombiesModClient;
 import com.example.client.module.AbstractModule;
 import com.example.client.setting.Setting;
 import com.example.client.setting.SettingManager;
@@ -38,6 +39,10 @@ public class ZombiesConfig {
 
             if (root.has("modEnabled")) {
                 ZombiesModClient.modEnabled = root.get("modEnabled").getAsBoolean();
+            }
+
+            if (root.has("guiKey")) {
+                ZombiesModClient.guiKey = root.get("guiKey").getAsInt();
             }
 
             if (!root.has("modules") || !root.get("modules").isJsonObject()) {
@@ -112,6 +117,7 @@ public class ZombiesConfig {
             JsonObject root = new JsonObject();
 
             root.addProperty("modEnabled", ZombiesModClient.modEnabled);
+            root.addProperty("guiKey", ZombiesModClient.guiKey);
 
             JsonObject modulesJson = new JsonObject();
 

@@ -3,6 +3,7 @@ package com.example.client.events;
 import com.darkmagician6.eventapi.EventManager;
 import com.example.client.utils.IMinecraft;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.minecraft.resources.Identifier;
@@ -24,6 +25,9 @@ public class FabricEvents implements IMinecraft {
 //
 //            return InteractionResult.PASS;
 //        });
+        ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
+            EventManager.call(new ChatEvent(message));
+        });
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (mc.player == null || mc.level == null) {
                 return;

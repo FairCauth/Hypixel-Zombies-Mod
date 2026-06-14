@@ -14,6 +14,7 @@ public class ScrollPanelWidget extends AbstractWidget {
     private final Minecraft mc = Minecraft.getInstance();
 
     private final List<ScrollItem> items = new ArrayList<>();
+    private final List<ScrollText> texts = new ArrayList<>();
     private final List<ModuleBox> moduleBoxes = new ArrayList<>();
 
     private int scrollOffset = 0;
@@ -25,8 +26,6 @@ public class ScrollPanelWidget extends AbstractWidget {
 
     private AbstractWidget focusedChild;
 
-    private static final int ITEM_HEIGHT = 25;
-
     private static final int SCROLLBAR_WIDTH = 6;
     private static final int SCROLLBAR_MARGIN = 2;
 
@@ -36,6 +35,7 @@ public class ScrollPanelWidget extends AbstractWidget {
 
     public void clearContent() {
         items.clear();
+        texts.clear();
         moduleBoxes.clear();
 
         scrollOffset = 0;
@@ -47,8 +47,22 @@ public class ScrollPanelWidget extends AbstractWidget {
     }
 
     public <T extends AbstractWidget> T addScrollWidget(T widget, int baseY) {
-        items.add(new ScrollItem(widget, baseY));
+        int widgetX = (this.width - 220) / 2;
+        items.add(new ScrollItem(widget, widgetX, baseY));
         return widget;
+    }
+
+    public <T extends AbstractWidget> T addScrollWidget(T widget, int baseX, int baseY) {
+        items.add(new ScrollItem(widget, baseX, baseY));
+        return widget;
+    }
+
+    public void addScrollText(String text, int baseX, int baseY, int color, boolean shadow) {
+        texts.add(new ScrollText(text, baseX, baseY, color, shadow));
+    }
+
+    public void addScrollText(String text, int baseX, int baseY) {
+        addScrollText(text, baseX, baseY, 0xFFFFFFFF, false);
     }
 
     public void addModuleBox(String name, int baseY, int height) {
@@ -67,15 +81,13 @@ public class ScrollPanelWidget extends AbstractWidget {
     }
 
     private void updateChildPositions() {
-        int widgetX = this.getX() + (this.width - 220) / 2;
-
         for (ScrollItem item : items) {
+            int x = this.getX() + item.baseX;
             int y = this.getY() + item.baseY - scrollOffset;
 
-            item.widget.setX(widgetX);
+            item.widget.setX(x);
             item.widget.setY(y);
 
-            // 注意：这里允许半露，因为真正裁剪交给 scissor
             boolean visible = y + item.widget.getHeight() >= this.getY()
                     && y <= this.getY() + this.height;
 
@@ -93,19 +105,17 @@ public class ScrollPanelWidget extends AbstractWidget {
         int x2 = this.getX() + this.width;
         int y2 = this.getY() + this.height;
 
-        // 整体背景
         graphics.fill(x1, y1, x2, y2, 0x66000000);
 
-        // 外边框
         graphics.fill(x1, y1, x2, y1 + 1, 0xFF555555);
         graphics.fill(x1, y2 - 1, x2, y2, 0xFF555555);
         graphics.fill(x1, y1, x1 + 1, y2, 0xFF555555);
         graphics.fill(x2 - 1, y1, x2, y2, 0xFF555555);
 
-        // 关键：裁剪滚动区域
         graphics.enableScissor(x1 + 1, y1 + 1, x2 - 1, y2 - 1);
 
         drawModuleBoxes(graphics);
+        drawScrollTexts(graphics);
 
         for (ScrollItem item : items) {
             if (!item.widget.visible) {
@@ -120,7 +130,31 @@ public class ScrollPanelWidget extends AbstractWidget {
         drawScrollbar(graphics);
     }
 
+    private void drawScrollTexts(GuiGraphicsExtractor graphics) {
+        int panelX = this.getX();
+        int panelY = this.getY();
 
+        int visibleTop = this.getY();
+        int visibleBottom = this.getY() + this.height;
+
+        for (ScrollText text : texts) {
+            int x = panelX + text.baseX;
+            int y = panelY + text.baseY - scrollOffset;
+
+            if (y + mc.font.lineHeight < visibleTop || y > visibleBottom) {
+                continue;
+            }
+
+            graphics.text(
+                    mc.font,
+                    text.text,
+                    x,
+                    y,
+                    text.color,
+                    text.shadow
+            );
+        }
+    }
 
     private void drawModuleBoxes(GuiGraphicsExtractor graphics) {
         int panelX = this.getX();
@@ -143,27 +177,26 @@ public class ScrollPanelWidget extends AbstractWidget {
             int drawY1 = Math.max(y, visibleTop);
             int drawY2 = Math.min(y + h, visibleBottom);
 
-            // 模块背景
             graphics.fill(boxX, drawY1, boxX + boxW, drawY2, 0xAA151515);
 
-            // 模块边框
             graphics.fill(boxX, drawY1, boxX + boxW, drawY1 + 1, 0xFF444444);
             graphics.fill(boxX, drawY2 - 1, boxX + boxW, drawY2, 0xFF444444);
             graphics.fill(boxX, drawY1, boxX + 1, drawY2, 0xFF444444);
             graphics.fill(boxX + boxW - 1, drawY1, boxX + boxW, drawY2, 0xFF444444);
 
-            // 模块标题
-            int titleY = y + 8;
+            if (box.name != null && !box.name.isEmpty()) {
+                int titleY = y + 8;
 
-            if (titleY >= visibleTop && titleY <= visibleBottom) {
-                graphics.text(
-                        mc.font,
-                        box.name,
-                        boxX + 10,
-                        titleY,
-                        0xFFFFCC55,
-                        true
-                );
+                if (titleY >= visibleTop && titleY <= visibleBottom) {
+                    graphics.text(
+                            mc.font,
+                            box.name,
+                            boxX + 10,
+                            titleY,
+                            0xFFFFCC55,
+                            true
+                    );
+                }
             }
         }
     }
@@ -178,20 +211,16 @@ public class ScrollPanelWidget extends AbstractWidget {
         int trackX2 = trackX1 + SCROLLBAR_WIDTH;
         int trackY2 = this.getY() + this.height - SCROLLBAR_MARGIN;
 
-        // 类似 MC 设置界面的深色轨道
         graphics.fill(trackX1, trackY1, trackX2, trackY2, 0xFF000000);
 
         int thumbY = getThumbY();
         int thumbHeight = getThumbHeight();
 
-        // 滑块主体
         graphics.fill(trackX1, thumbY, trackX2, thumbY + thumbHeight, 0xFF808080);
 
-        // 滑块高亮边
         graphics.fill(trackX1, thumbY, trackX2 - 1, thumbY + 1, 0xFFC0C0C0);
         graphics.fill(trackX1, thumbY, trackX1 + 1, thumbY + thumbHeight - 1, 0xFFC0C0C0);
 
-        // 滑块暗边
         graphics.fill(trackX1, thumbY + thumbHeight - 1, trackX2, thumbY + thumbHeight, 0xFF404040);
         graphics.fill(trackX2 - 1, thumbY, trackX2, thumbY + thumbHeight, 0xFF404040);
     }
@@ -286,7 +315,6 @@ public class ScrollPanelWidget extends AbstractWidget {
             return false;
         }
 
-        // 左键拖动滚动条
         if (event.button() == 0 && isMouseOverScrollbar(event.x(), event.y())) {
             int thumbY = getThumbY();
 
@@ -301,7 +329,6 @@ public class ScrollPanelWidget extends AbstractWidget {
             return true;
         }
 
-        // 把点击事件转发给内部按钮
         for (int i = items.size() - 1; i >= 0; i--) {
             AbstractWidget widget = items.get(i).widget;
 
@@ -317,9 +344,6 @@ public class ScrollPanelWidget extends AbstractWidget {
 
         return true;
     }
-
-
-
 
     @Override
     public boolean mouseReleased(MouseButtonEvent event) {
@@ -353,10 +377,9 @@ public class ScrollPanelWidget extends AbstractWidget {
         if (focusedChild != null) {
             return focusedChild.mouseDragged(event, dx, dy);
         }
+
         return super.mouseDragged(event, dx, dy);
     }
-
-
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
@@ -386,11 +409,29 @@ public class ScrollPanelWidget extends AbstractWidget {
 
     private static class ScrollItem {
         private final AbstractWidget widget;
+        private final int baseX;
         private final int baseY;
 
-        private ScrollItem(AbstractWidget widget, int baseY) {
+        private ScrollItem(AbstractWidget widget, int baseX, int baseY) {
             this.widget = widget;
+            this.baseX = baseX;
             this.baseY = baseY;
+        }
+    }
+
+    private static class ScrollText {
+        private final String text;
+        private final int baseX;
+        private final int baseY;
+        private final int color;
+        private final boolean shadow;
+
+        private ScrollText(String text, int baseX, int baseY, int color, boolean shadow) {
+            this.text = text;
+            this.baseX = baseX;
+            this.baseY = baseY;
+            this.color = color;
+            this.shadow = shadow;
         }
     }
 

@@ -16,12 +16,12 @@ public class ModuleManager {
 
     public ModuleManager() {
         add(new AutoSwitchWeapon(), new HideBlockingPlayer(), new RightClicker(), new Sprint(), new TargetHud());
-        add(new NoFireEffect());
+        add(new NoFireEffect(), new TeammatesGlow(), new DPSCounter(), new Notification(), new NoGunFire());
         EventManager.register(this);
     }
     public AbstractModule getModule(String name) {
         for (AbstractModule abstractModule : moduleList) {
-            if(abstractModule.getName().equals(name)) return abstractModule;
+            if(abstractModule.getNameKey().equals(name)) return abstractModule;
         }
         return null;
     }

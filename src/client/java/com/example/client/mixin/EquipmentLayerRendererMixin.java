@@ -1,22 +1,8 @@
 package com.example.client.mixin;
 
 
-import com.example.client.ZombiesConfig;
-import com.example.client.module.modules.HideBlockingPlayer;
-import com.example.client.utils.HidePlayerHelper;
-import com.mojang.blaze3d.vertex.PoseStack;
-import net.minecraft.client.model.Model;
-import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.layers.EquipmentLayerRenderer;
-import net.minecraft.client.renderer.entity.state.AvatarRenderState;
-import net.minecraft.client.resources.model.EquipmentClientInfo;
-import net.minecraft.resources.Identifier;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.equipment.EquipmentAsset;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
 
 @Mixin(EquipmentLayerRenderer.class)

@@ -1,22 +1,27 @@
 {
-	"required": true,
-	"package": "com.example.client.mixin",
-	"compatibilityLevel": "JAVA_25",
-	"client": [
-		"ExampleClientMixin",
-		"PauseScreenMixin"
-	],
-	"injectors": {
-		"defaultRequire": 1
-	},
-	"overwrites": {
-		"requireAnnotations": true
-	},
-	"mixins": [
-		"EntityRendererMixin",
-		"EquipmentLayerRendererMixin",
-		"HumanoidArmorLayerMixin",
-		"LivingEntityRendererMixin",
-		"ScreenEffectRendererMixin"
-	]
+  "required": true,
+  "package": "com.example.client.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "client": [
+    "ExampleClientMixin",
+    "PauseScreenMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  },
+  "mixins": [
+    "EntityRendererMixin",
+    "EquipmentLayerRendererMixin",
+    "HumanoidArmorLayerMixin",
+    "KeyboardHandlerMixin",
+    "LivingEntityRendererMixin",
+    "MinecraftMixin",
+    "ScreenEffectRendererMixin",
+    "packet.ClientPacketListenerMixin",
+    "packet.ClientPacketListenerSoundMixin",
+    "packet.ConnectionMixin"
+  ]
 }

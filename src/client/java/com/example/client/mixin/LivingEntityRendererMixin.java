@@ -32,10 +32,12 @@ public class LivingEntityRendererMixin {
         if (!HidePlayerHelper.shouldFade(player)) {
             return;
         }
-
-        // 关键：
-        // 让原版认为这个实体身体不可见，但对本地玩家仍可见
-        // 这样会走半透明渲染逻辑，而不是完全消失
+        if (HideBlockingPlayer.fullHide.getValue()) {
+            return;
+        }
+        //
+        //让原版认为这个实体身体不可见，但对本地玩家仍可见
+        //这样会走半透明渲染逻辑，而不是完全消失
         state.isInvisible = true;
         state.isInvisibleToPlayer = false;
     }

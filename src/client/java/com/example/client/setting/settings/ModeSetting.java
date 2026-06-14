@@ -3,12 +3,15 @@ package com.example.client.setting.settings;
 import com.example.client.setting.Setting;
 import com.example.client.setting.attribute.SettingAttribute;
 import com.google.gson.JsonElement;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.util.List;
 
+@Getter
 public class ModeSetting extends Setting<String> {
+    @Setter
     private List<String> modes;
-    public boolean open = false;
 
     public ModeSetting(String value, List<String> modes) {
         super(value);
@@ -32,12 +35,31 @@ public class ModeSetting extends Setting<String> {
         super(value, settingAttributes);
         this.modes = modes;
     }
+    public void setMode(String mode) {
+        if (modes == null || modes.isEmpty()) {
+            value = mode;
+            return;
+        }
 
-    public List<String> getModes() {
-        return modes;
+        if (modes.contains(mode)) {
+            value = mode;
+        }
     }
+    public String next() {
+        int index = modes.indexOf(value);
 
-    public void setModes(List<String> modes) {
-        this.modes = modes;
+        if (index == -1) {
+            value = modes.getFirst();
+            return value;
+        }
+
+        index++;
+
+        if (index >= modes.size()) {
+            index = 0;
+        }
+
+        value = modes.get(index);
+        return value;
     }
 }

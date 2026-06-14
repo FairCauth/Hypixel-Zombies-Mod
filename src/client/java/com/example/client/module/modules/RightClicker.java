@@ -2,6 +2,7 @@ package com.example.client.module.modules;
 
 import com.darkmagician6.eventapi.EventTarget;
 import com.example.client.ZombiesGuns;
+import com.example.client.events.RenderEvent;
 import com.example.client.events.TickEvent;
 import com.example.client.language.Language;
 import com.example.client.language.Text;
@@ -9,9 +10,11 @@ import com.example.client.module.AbstractModule;
 import com.example.client.module.annotation.ModuleInfo;
 import com.example.client.setting.annotation.SettingInfo;
 import com.example.client.setting.settings.BooleanSetting;
+import com.example.client.setting.settings.ModeSetting;
 import com.example.client.setting.settings.NumberSetting;
 import com.example.client.utils.TimeUtils;
 import net.minecraft.client.KeyMapping;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.animal.equine.AbstractHorse;
@@ -26,12 +29,20 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
 
+import java.awt.*;
+import java.util.Arrays;
+
 @ModuleInfo(name = {
         @Text(label = "Right Clicker", language = Language.English),
         @Text(label = "右键连点器", language = Language.Chinese)
 }, enable = true)
 public class RightClicker extends AbstractModule {
 
+    @SettingInfo(name = {
+            @Text(label = "Click Mode", language = Language.English),
+            @Text(label = "点击模式", language = Language.Chinese)
+    })
+    private final ModeSetting mode = new ModeSetting("Key", Arrays.asList("Key", "Simulate"));
     @SettingInfo(name = {
             @Text(label = "Max CPS", language = Language.English),
             @Text(label = "最大CPS", language = Language.Chinese)
@@ -51,11 +62,11 @@ public class RightClicker extends AbstractModule {
 
     public RightClicker() {
         registerSetting(maxCPS, minCPS, onlyGuns);
+
     }
 
     @EventTarget
-    public void onClick(TickEvent event) {
-
+    public void onClick(RenderEvent event) {
         if (!mc.options.keyUse.isDown()) return;
         if (shouldSkipInteraction()) {
             return;

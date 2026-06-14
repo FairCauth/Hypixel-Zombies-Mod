@@ -1,7 +1,9 @@
-package com.example.client.utils;
+package com.example.client.utils.render;
 
+import com.example.client.utils.IMinecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 public class WorldToScreen implements IMinecraft {
@@ -9,7 +11,7 @@ public class WorldToScreen implements IMinecraft {
     public static ScreenPos project(Vec3 worldPos, float partialTicks) {
         LocalPlayer player = mc.player;
 
-        if (player == null || mc.level == null || mc.getWindow() == null) {
+        if (player == null || mc.level == null || worldPos == null) {
             return null;
         }
 
@@ -25,18 +27,14 @@ public class WorldToScreen implements IMinecraft {
 
         Vec3 forward = getLookVector(pitch, yaw).normalize();
 
-        // 关键修正：屏幕右方向
         Vec3 worldUp = new Vec3(0.0D, 1.0D, 0.0D);
         Vec3 right = forward.cross(worldUp).normalize();
-
-        // 屏幕上方向
         Vec3 up = right.cross(forward).normalize();
 
         double cameraX = relative.dot(right);
         double cameraY = relative.dot(up);
         double cameraZ = relative.dot(forward);
 
-        // 在相机背后，不绘制
         if (cameraZ <= 0.05D) {
             return null;
         }
@@ -66,6 +64,76 @@ public class WorldToScreen implements IMinecraft {
         double z = lerp(partialTicks, entity.zOld, entity.getZ());
 
         return project(new Vec3(x, y, z), partialTicks);
+    }
+
+    public static ScreenBox projectEntityBox(Entity entity, float partialTicks) {
+        if (entity == null) {
+            return null;
+        }
+
+        double renderX = lerp(partialTicks, entity.xOld, entity.getX());
+        double renderY = lerp(partialTicks, entity.yOld, entity.getY());
+        double renderZ = lerp(partialTicks, entity.zOld, entity.getZ());
+
+        double moveX = renderX - entity.getX();
+        double moveY = renderY - entity.getY();
+        double moveZ = renderZ - entity.getZ();
+
+        AABB box = entity.getBoundingBox().move(moveX, moveY, moveZ);
+
+        Vec3[] points = new Vec3[]{
+                new Vec3(box.minX, box.minY, box.minZ),
+                new Vec3(box.minX, box.minY, box.maxZ),
+                new Vec3(box.minX, box.maxY, box.minZ),
+                new Vec3(box.minX, box.maxY, box.maxZ),
+
+                new Vec3(box.maxX, box.minY, box.minZ),
+                new Vec3(box.maxX, box.minY, box.maxZ),
+                new Vec3(box.maxX, box.maxY, box.minZ),
+                new Vec3(box.maxX, box.maxY, box.maxZ)
+        };
+
+        double minX = Double.MAX_VALUE;
+        double minY = Double.MAX_VALUE;
+        double maxX = -Double.MAX_VALUE;
+        double maxY = -Double.MAX_VALUE;
+
+        double minDepth = Double.MAX_VALUE;
+
+        boolean projected = false;
+
+        for (Vec3 point : points) {
+            ScreenPos pos = project(point, partialTicks);
+
+            if (pos == null) {
+                continue;
+            }
+
+            minX = Math.min(minX, pos.x());
+            minY = Math.min(minY, pos.y());
+            maxX = Math.max(maxX, pos.x());
+            maxY = Math.max(maxY, pos.y());
+
+            minDepth = Math.min(minDepth, pos.depth());
+
+            projected = true;
+        }
+
+        if (!projected) {
+            return null;
+        }
+
+        if (maxX <= minX || maxY <= minY) {
+            return null;
+        }
+
+        return new ScreenBox(
+                (float) minX,
+                (float) minY,
+                (float) maxX,
+                (float) maxY,
+                (float) minDepth
+        );
     }
 
     private static Vec3 getCameraPos(LocalPlayer player, float partialTicks) {
@@ -110,5 +178,24 @@ public class WorldToScreen implements IMinecraft {
     }
 
     public record ScreenPos(float x, float y, float depth) {
+    }
+
+    public record ScreenBox(float minX, float minY, float maxX, float maxY, float depth) {
+
+        public float width() {
+            return maxX - minX;
+        }
+
+        public float height() {
+            return maxY - minY;
+        }
+
+        public float centerX() {
+            return (minX + maxX) / 2.0F;
+        }
+
+        public float centerY() {
+            return (minY + maxY) / 2.0F;
+        }
     }
 }

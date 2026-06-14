@@ -9,11 +9,13 @@ import com.example.client.module.AbstractModule;
 import com.example.client.module.annotation.ModuleInfo;
 import com.example.client.setting.annotation.SettingInfo;
 import com.example.client.setting.settings.NumberSetting;
-import com.example.client.utils.WorldToScreen;
+import com.example.client.utils.render.GuiGraphicsUtils;
+import com.example.client.utils.render.WorldToScreen;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
@@ -55,32 +57,35 @@ public class TargetHud extends AbstractModule {
             return;
 
         int width = 150;
-        int height = 48;
+        int height = 62;
         int x = (int) pos.x() - width / 2;
         int y = (int) pos.y() - height;
 
 
         String name = target.getName().getString();
-
         float health = Math.max(0.0F, target.getHealth());
         float maxHealth = Math.max(1.0F, target.getMaxHealth());
         float percent = Math.max(0.0F, Math.min(1.0F, health / maxHealth));
 
+        int armor = target.getArmorValue();
+        float armorPercent = Math.max(0.0F, Math.min(1.0F, armor / 20.0F));
+
+        double armorToughness = 0.0D;
+
+        try {
+            armorToughness = target.getAttributeValue(Attributes.ARMOR_TOUGHNESS);
+        } catch (Exception ignored) {
+        }
+
         double distance = mc.player.distanceTo(target);
 
-        drawBackground(event.getGuiGraphicsExtractor(), x, y, width, height);
-        drawText(event.getGuiGraphicsExtractor(), x, y, name, health, maxHealth, distance);
-        drawHealthBar(event.getGuiGraphicsExtractor(), x + 8, y + 32, width - 16, 8, percent);
-    }
-    private static void drawBackground(GuiGraphicsExtractor graphics, int x, int y, int width, int height) {
-        graphics.fill(x, y, x + width, y + height, 0xAA111111);
+        GuiGraphicsUtils.drawBackground(event.getGuiGraphicsExtractor(), x, y, width, height);
+        drawText(event.getGuiGraphicsExtractor(), x, y, name, health, maxHealth, armor, armorToughness, distance);
 
-
-        graphics.fill(x, y, x + width, y + 1, 0xFF444444);
-        graphics.fill(x, y + height - 1, x + width, y + height, 0xFF444444);
-        graphics.fill(x, y, x + 1, y + height, 0xFF444444);
-        graphics.fill(x + width - 1, y, x + width, y + height, 0xFF444444);
+        GuiGraphicsUtils.drawHealthBar(event.getGuiGraphicsExtractor(), x + 8, y + 32, width - 16, 8, percent);
+        GuiGraphicsUtils.drawArmorBar(event.getGuiGraphicsExtractor(), x + 8, y + 50, width - 16, 8, armorPercent);
     }
+
 
     private static void drawText(
             GuiGraphicsExtractor graphics,
@@ -89,47 +94,25 @@ public class TargetHud extends AbstractModule {
             String name,
             float health,
             float maxHealth,
+            int armor,
+            double armorToughness,
             double distance
     ) {
         String hpText = String.format("%.1f / %.1f HP", health, maxHealth);
+        String armorText = armorToughness > 0.0D
+                ? String.format("DEF: %d  T: %.1f", armor, armorToughness)
+                : "DEF: " + armor;
         String distanceText = String.format("%.1f m", distance);
 
         graphics.text(mc.font, name, x + 8, y + 7, 0xFFFFFFFF, true);
         graphics.text(mc.font, hpText, x + 8, y + 18, 0xFFFF5555, true);
         graphics.text(mc.font, distanceText, x + 105, y + 18, 0xFFAAAAAA, true);
+        graphics.text(mc.font, armorText, x + 8, y + 42, 0xFF55AAFF, true);
     }
 
-    private static void drawHealthBar(
-            GuiGraphicsExtractor graphics,
-            int x,
-            int y,
-            int width,
-            int height,
-            float percent
-    ) {
-        int filled = (int) (width * percent);
 
-        //血条背景
-        graphics.fill(x, y, x + width, y + height, 0xFF333333);
 
-        //血条颜色
-        int color = getHealthColor(percent);
-        graphics.fill(x, y, x + filled, y + height, color);
 
-        //血条边框
-        graphics.fill(x, y, x + width, y + 1, 0xFF000000);
-        graphics.fill(x, y + height - 1, x + width, y + height, 0xFF000000);
-        graphics.fill(x, y, x + 1, y + height, 0xFF000000);
-        graphics.fill(x + width - 1, y, x + width, y + height, 0xFF000000);
-    }
-
-    private static int getHealthColor(float percent) {
-        if (percent > 0.66F)
-            return 0xFF55FF55; //绿
-        if (percent > 0.33F)
-            return 0xFFFFFF55; //黄
-        return 0xFFFF5555; //红
-    }
     public static LivingEntity raycastTarget(double distance) {
         LocalPlayer player = mc.player;
 

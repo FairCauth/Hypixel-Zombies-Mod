@@ -2,12 +2,17 @@ package com.example.client.module.modules;
 
 import com.darkmagician6.eventapi.EventTarget;
 import com.example.client.ZombiesGuns;
+import com.example.client.config.AutoSwitchWeaponConfig;
 import com.example.client.events.TickEvent;
+import com.example.client.gui.AutoSwitchWeaponScreen;
+import com.example.client.gui.ZombiesConfigScreen;
 import com.example.client.language.Language;
 import com.example.client.language.Text;
 import com.example.client.module.AbstractModule;
 import com.example.client.module.annotation.ModuleInfo;
 import com.example.client.setting.annotation.SettingInfo;
+import com.example.client.setting.settings.ButtonSetting;
+import com.example.client.setting.settings.ModeSetting;
 import com.example.client.setting.settings.NumberSetting;
 import com.example.client.utils.TimeUtils;
 import net.minecraft.client.player.LocalPlayer;
@@ -16,6 +21,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 
@@ -25,13 +31,35 @@ import java.util.Set;
 }, enable = true)
 public class AutoSwitchWeapon extends AbstractModule {
     @SettingInfo(name = {
+            @Text(label = "Delay Mode", language = Language.English)
+    })
+    public static final ModeSetting delayMode = new ModeSetting("All", Arrays.asList("All", "Manual"));
+
+    @SettingInfo(name = {
             @Text(label = "Switch Delay", language = Language.English)
     })
-    public static final NumberSetting switchDelay = new NumberSetting(200, 10, 1000,"#");
+    public static final NumberSetting switchDelay = new NumberSetting(200, 10, 1000, "#");
+
+
+    @SettingInfo(name = {
+            @Text(label = "Guns Config", language = Language.English),
+            @Text(label = "枪械配置", language = Language.English)
+    })
+    public static final ButtonSetting gunsConfig = new ButtonSetting() {
+        @Override
+        public void onClickedButton() {
+            if (AutoSwitchWeaponScreen.instance == null) {
+                AutoSwitchWeaponScreen.instance = new AutoSwitchWeaponScreen(ZombiesConfigScreen.instance);
+            }
+            mc.setScreen(AutoSwitchWeaponScreen.instance);
+        }
+    };
+
 
     public AutoSwitchWeapon() {
-        registerSetting(switchDelay);
+        registerSetting(delayMode, switchDelay, gunsConfig);
     }
+
     private TimeUtils timeUtils = new TimeUtils();
     private static boolean lastUseDown = false;
 
@@ -55,13 +83,12 @@ public class AutoSwitchWeapon extends AbstractModule {
             return;
         }
 
-        if (!timeUtils.hasTimeElapsed(switchDelay.getValue().longValue())) return;
 
         switchToNextGun();
 
-        timeUtils.reset();
     }
-    private static void switchToNextGun() {
+
+    private void switchToNextGun() {
         ItemStack current = mc.player.getMainHandItem();
 
         if (!ZombiesGuns.isZombiesGun(current)) {
@@ -79,7 +106,7 @@ public class AutoSwitchWeapon extends AbstractModule {
         setSelectedSlot(nextSlot);
     }
 
-    private static int findNextUsableGunSlot(int currentSlot) {
+    private int findNextUsableGunSlot(int currentSlot) {
         for (int i = 1; i <= 9; i++) {
             int slot = (currentSlot + i) % 9;
             ItemStack stack = mc.player.getInventory().getItem(slot);
@@ -90,6 +117,18 @@ public class AutoSwitchWeapon extends AbstractModule {
 
             if (isReloadingGun(stack)) {
                 continue;
+            }
+            ZombiesGuns gun = ZombiesGuns.getGunOrNull(stack);
+            AutoSwitchWeaponConfig.GunSwitchSetting config = AutoSwitchWeaponConfig.get(gun);
+            if (config == null) continue;
+            if (!config.isEnabled()) continue;
+
+            if (delayMode.is("All")) {
+                if (!timeUtils.hasTimeElapsed(switchDelay.getValue().longValue(), true))
+                    continue;
+            } else {
+
+
             }
 
             return slot;

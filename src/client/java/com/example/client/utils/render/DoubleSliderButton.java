@@ -1,4 +1,4 @@
-package com.example.client.utils;
+package com.example.client.utils.render;
 
 import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.network.chat.Component;

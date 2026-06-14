@@ -1,26 +1,40 @@
 package com.example.client.gui;
 
-import com.example.client.ZombiesConfig;
+import com.example.client.config.ZombiesConfig;
 import com.example.client.ZombiesModClient;
-import com.example.client.gui.ScrollPanelWidget;
 import com.example.client.module.AbstractModule;
 import com.example.client.setting.Setting;
 import com.example.client.setting.SettingManager;
 import com.example.client.setting.settings.BooleanSetting;
+import com.example.client.setting.settings.ButtonSetting;
 import com.example.client.setting.settings.ModeSetting;
 import com.example.client.setting.settings.NumberSetting;
-import com.example.client.utils.DoubleSliderButton;
+import com.example.client.utils.render.DoubleSliderButton;
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.Component;
+import org.jetbrains.annotations.NotNull;
+import org.lwjgl.glfw.GLFW;
 
 public class ZombiesConfigScreen extends Screen {
-    private final Screen parent;
+    public static ZombiesConfigScreen instance = null;
+
+    private Screen parent;
+
+    /** 设置关闭后返回的界面。按键打开传 null（回到游戏），从某界面打开就传那个界面。 */
+    public void setParent(Screen parent) {
+        this.parent = parent;
+    }
 
     private ScrollPanelWidget scrollPanel;
+
+    private Button bindButton;
+    private boolean listeningForKey = false;
 
     private static final int PANEL_WIDTH = 300;
     private static final int WIDGET_WIDTH = 220;
@@ -41,14 +55,16 @@ public class ZombiesConfigScreen extends Screen {
     protected void init() {
         int centerX = this.width / 2;
 
-        this.addRenderableWidget(Button.builder(
-                boolText("Mod Enabled", ZombiesModClient.modEnabled),
+        this.listeningForKey = false;
+        this.bindButton = Button.builder(
+                bindText(),
                 button -> {
-                    ZombiesModClient.modEnabled = !ZombiesModClient.modEnabled;
-                    button.setMessage(boolText("Mod Enabled", ZombiesModClient.modEnabled));
-                    ZombiesConfig.save();
+                    this.listeningForKey = true;
+                    button.setMessage(Component.literal("Gui Bind: ")
+                            .append(Component.literal("<按任意键…>").withStyle(ChatFormatting.YELLOW)));
                 }
-        ).bounds(centerX - 100, 50, 200, 20).build());
+        ).bounds(centerX - 100, 50, 200, 20).build();
+        this.addRenderableWidget(this.bindButton);
 
         int panelX = centerX - PANEL_WIDTH / 2;
         int panelY = TOP;
@@ -72,6 +88,33 @@ public class ZombiesConfigScreen extends Screen {
                     this.onClose();
                 }
         ).bounds(centerX - 100, this.height - 30, 200, 20).build());
+    }
+
+    @Override
+    public boolean keyPressed(@NotNull KeyEvent event) {
+        if (this.listeningForKey) {
+            int key = event.key();
+            if (key != GLFW.GLFW_KEY_ESCAPE) {   // ESC = 取消绑定，不改键
+                ZombiesModClient.guiKey = key;
+                ZombiesConfig.save();
+            }
+            this.listeningForKey = false;
+            if (this.bindButton != null) {
+                this.bindButton.setMessage(bindText());
+            }
+            return true; // 消费按键，避免误触发关闭等
+        }
+        return super.keyPressed(event);
+    }
+
+    /** 绑定按钮文字：显示当前打开 GUI 的按键名。 */
+    private static Component bindText() {
+        String keyName = InputConstants.Type.KEYSYM
+                .getOrCreate(ZombiesModClient.guiKey)
+                .getDisplayName()
+                .getString();
+        return Component.literal("Gui Bind: ")
+                .append(Component.literal(keyName).withStyle(ChatFormatting.AQUA));
     }
 
     private void buildModuleContent() {
@@ -130,7 +173,23 @@ public class ZombiesConfigScreen extends Screen {
 
                     y += ITEM_HEIGHT;
                 } else if (setting instanceof ModeSetting modeSetting) {
+                    this.scrollPanel.addScrollWidget(Button.builder(
+                            modeText(setting.getName(), modeSetting.getValue()),
+                            button -> {
+                                String newMode = modeSetting.next();
 
+                                button.setMessage(modeText(setting.getName(), newMode));
+
+                                ZombiesConfig.save();
+                            }
+                    ).bounds(0, 0, WIDGET_WIDTH, 20).build(), y);
+                    y += ITEM_HEIGHT;
+                } else if (setting instanceof ButtonSetting buttonSetting) {
+                    this.scrollPanel.addScrollWidget(Button.builder(
+                            Component.literal(setting.getName()),
+                            button ->
+                                    buttonSetting.onClickedButton()
+                    ).bounds(0, 0, WIDGET_WIDTH, 20).build(), y);
                     y += ITEM_HEIGHT;
                 }
             }

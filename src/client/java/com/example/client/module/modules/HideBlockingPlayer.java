@@ -14,17 +14,23 @@ import com.example.client.setting.settings.NumberSetting;
 }, enable = true)
 public class HideBlockingPlayer extends AbstractModule {
     @SettingInfo(name = {
-            @Text(label = "Fade Overlap Expand", language = Language.English)
+            @Text(label = "Hide Overlap Expand", language = Language.English)
     })
     public static final NumberSetting fadeOverlapExpand = new NumberSetting(0.15d, 0, 1d,"#.0");
 //    @SettingInfo(name = {
 //            @Text(label = "Fade Player Alpha", language = Language.English)
 //    })
 //    public static final NumberSetting fadePlayerAlpha = new NumberSetting(100, 0, 255,"#");
+    @SettingInfo(name = {
+            @Text(label = "Full Hide", language = Language.English),
+            @Text(label = "完全隐藏", language = Language.Chinese)
+    })
+    public static final BooleanSetting fullHide = new BooleanSetting(false);
+
 
 
     public HideBlockingPlayer() {
-        registerSetting(fadeOverlapExpand);
+        registerSetting(fadeOverlapExpand, fullHide);
 
     }
 }
