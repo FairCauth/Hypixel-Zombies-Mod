@@ -145,9 +145,10 @@ public class ServerTracker implements IMinecraft {
                     .append(Component.literal("!").withStyle(ChatFormatting.YELLOW));
             AbstractModule notification = ZombiesModClient.moduleManager.getModule("module.notification");
             if(notification.isEnable() && Notification.roundRecorder.getValue()) {
-                ChatUtils.print(GuiText.text("toast.round_recorder").copy()
-                        .append(Component.literal("\n"))
-                        .append(message));
+                ChatUtils.print(Component.literal("[")
+                    .append(GuiText.text("toast.round_recorder"))
+                    .append(Component.literal("] "))
+                    .append(message));
             }
 
             roundTime = System.currentTimeMillis();
@@ -159,9 +160,10 @@ public class ServerTracker implements IMinecraft {
                     ZombiesSpawnTable.SpawnInfo info = ZombiesSpawnTable.get(nextRound);
                     if (info != null) {
                         Component spawnMessage = GuiText.text("toast.monsters", info.monsters()).copy()
+                            .withStyle(ChatFormatting.GREEN)
                                 .append(Component.literal("\n"))
-                                .append(GuiText.text("toast.location", info.location()));
-                        ChatUtils.print(GuiText.text("toast.next_round", nextRound).copy()
+                                .append(GuiText.text("toast.location", info.location()).copy().withStyle(ChatFormatting.GREEN));
+                        ChatUtils.print(GuiText.text("toast.next_round", nextRound).copy().withStyle(ChatFormatting.GREEN)
                             .append(Component.literal("\n"))
                             .append(spawnMessage));
                     }

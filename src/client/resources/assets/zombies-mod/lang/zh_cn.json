@@ -67,7 +67,7 @@
   "zombies-mod.hud.ready": "就绪",
   "zombies-mod.hud.bad": "无法暴击",
   "zombies-mod.hud.boss": " BOSS",
-  "zombies-mod.hud.next": "  （下一波 %s秒）",
+  "zombies-mod.hud.next": "（下一波 %s秒）",
   "zombies-mod.map.dead_end": "穷途末路",
   "zombies-mod.map.bad_blood": "坏血之宫",
   "zombies-mod.map.alien_arcadium": "外星游乐园",

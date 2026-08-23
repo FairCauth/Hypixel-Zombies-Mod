@@ -67,7 +67,7 @@
   "zombies-mod.hud.ready": "RDY",
   "zombies-mod.hud.bad": "BAD",
   "zombies-mod.hud.boss": " BOSS",
-  "zombies-mod.hud.next": "  (next %ss)",
+  "zombies-mod.hud.next": "(next %ss)",
   "zombies-mod.map.dead_end": "Dead End",
   "zombies-mod.map.bad_blood": "Bad Blood",
   "zombies-mod.map.alien_arcadium": "Alien Arcadium",

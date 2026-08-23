@@ -70,9 +70,15 @@ public class WaveDisplay extends AbstractModule {
         double toNext = ZombiesWaves.secondsToNextWave(waves, elapsed);
         Component header = GuiText.text("hud.round_title", round, mapName(map),
             boss ? GuiText.textString("hud.boss") : "",
-            toNext >= 0 ? GuiText.textString("hud.next", String.format("%.1f", toNext)) : "");
+            "");
         graphics.text(mc.font, header, x, y, boss ? 0xFFFF5555 : 0xFFFFFFFF, true);
         y += lineHeight + 2;
+
+        if (toNext >= 0) {
+            Component next = GuiText.text("hud.next", String.format("%.1f", toNext));
+            graphics.text(mc.font, next, x, y, boss ? 0xFFFF5555 : 0xFFFFFFFF, true);
+            y += lineHeight;
+        }
 
         for (int i = 0; i < waves.length; i++) {
             Component label = GuiText.text("hud.wave_time", i + 1, formatClock(waves[i]));
