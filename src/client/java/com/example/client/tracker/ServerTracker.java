@@ -109,6 +109,8 @@ public class ServerTracker implements IMinecraft {
             TeammateTracker.clear();
             GameStatTracker.clear();
             lastRoundStartGold = -1; // 离开/换局，重置金币快照
+            roundTime = 0L;
+            currentRound = -1;
             // 注意：不在这里 reset powerup！倒地/过场会让挖掘疲劳瞬间消失被误判为"离开"，
             // 从而清掉已锁定的道具模式（INSTA 表只到 23 回合，清了就再也锁不回 → 永远 ?）。
             // 道具预测改为只在"新一局开始"时重置（见 onPacketTrack 回合标题处）。
@@ -122,6 +124,11 @@ public class ServerTracker implements IMinecraft {
             roundStartSound = false;
 
             int lastRound = currentRound - 1;
+
+            if (currentRound == 1) {
+                roundTime = System.currentTimeMillis();
+                return;
+            }
 
             // 上回合金币变化：从计分板读我当前金币，与上回合开始时的快照对比
             long myGold = getMyScoreboardGold();
@@ -321,6 +328,7 @@ public class ServerTracker implements IMinecraft {
                 // 不用 round<currentRound：带数字的非回合标题（道具/特效等）会误触发清空。
                 if (round == 1) {
                     powerup.reset();
+                    roundTime = System.currentTimeMillis();
                 }
                 currentRound = round;
             }
