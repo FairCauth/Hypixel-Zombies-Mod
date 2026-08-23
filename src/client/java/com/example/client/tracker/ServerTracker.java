@@ -143,7 +143,7 @@ public class ServerTracker implements IMinecraft {
                     .append(GuiText.text("toast.in").copy().withStyle(ChatFormatting.YELLOW))
                     .append(Component.literal(timeStr).withStyle(ChatFormatting.GREEN))
                     .append(Component.literal("!").withStyle(ChatFormatting.YELLOW));
-            AbstractModule notification = ZombiesModClient.moduleManager.getModule("Notification");
+            AbstractModule notification = ZombiesModClient.moduleManager.getModule("module.notification");
             if(notification.isEnable() && Notification.roundRecorder.getValue()) {
                 ChatUtils.print(GuiText.text("toast.round_recorder").copy()
                         .append(Component.literal("\n"))
