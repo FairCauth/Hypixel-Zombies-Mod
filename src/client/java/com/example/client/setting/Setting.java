@@ -3,7 +3,7 @@ package com.example.client.setting;
 import com.google.gson.JsonObject;
 
 import com.example.client.language.Language;
-import com.example.client.language.Text;
+import com.example.client.language.GuiText;
 import com.example.client.setting.attribute.SettingAttribute;
 import com.google.gson.JsonElement;
 
@@ -17,7 +17,7 @@ import java.util.List;
 public abstract class Setting<T> {
     @Getter
     @Setter
-    private Text[] texts;
+    private String textKey;
 
     protected T value;
     @Setter
@@ -49,13 +49,13 @@ public abstract class Setting<T> {
     }
 
     public String getName(Language language) {
-        return Language.getLabel(getTexts(), language);
+        return GuiText.textString(textKey);
     }
     public String getName() {
-        return Language.getLabel(getTexts(), Language.getLanguage());
+        return GuiText.textString(textKey);
     }
     public String getNameKey() {
-        return Language.getLabel(getTexts(), Language.getDefaultLanguage());
+        return textKey;
     }
 
     public boolean isDisplay() {

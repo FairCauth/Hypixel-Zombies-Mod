@@ -1,6 +1,7 @@
 package com.example.client.mixin;
 
 import com.example.client.gui.ZombiesConfigScreen;
+import com.example.client.language.GuiText;
 import lombok.Getter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
@@ -23,7 +24,7 @@ public abstract class PauseScreenMixin extends Screen {
     private void addZombiesButton(CallbackInfo ci) {
         this.addRenderableWidget(
                 Button.builder(
-                        Component.literal("Zombies Mod"),
+                        GuiText.text("zombies_mod"),
                         button -> {
                             if(ZombiesConfigScreen.instance == null)
                                 ZombiesConfigScreen.instance = new ZombiesConfigScreen((Screen) this);

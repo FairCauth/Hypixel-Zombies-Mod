@@ -5,7 +5,6 @@ import com.example.client.ZombiesModClient;
 import com.example.client.events.EntityLoadEvent;
 import com.example.client.events.TickEvent;
 import com.example.client.language.Language;
-import com.example.client.language.Text;
 import com.example.client.module.AbstractModule;
 import com.example.client.module.annotation.ModuleInfo;
 import com.example.client.setting.annotation.SettingInfo;
@@ -32,34 +31,19 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-@ModuleInfo(name = {
-        @Text(label = "Bad Headshot", language = Language.English),
-        @Text(label = "无法暴击提示", language = Language.Chinese)
-}, enable = false)
+@ModuleInfo(name = "module.bad_headshot", enable = false)
 public class BadHeadshot extends AbstractModule {
 
-    @SettingInfo(name = {
-            @Text(label = "Only In Zombies", language = Language.English),
-            @Text(label = "仅在僵尸末日里", language = Language.Chinese)
-    })
+    @SettingInfo(name = "setting.only_in_zombies")
     public static final BooleanSetting onlyGame = new BooleanSetting(true);
 
-    @SettingInfo(name = {
-            @Text(label = "Distance", language = Language.English),
-            @Text(label = "检测距离", language = Language.Chinese)
-    })
+    @SettingInfo(name = "setting.distance")
     public static final NumberSetting distance = new NumberSetting(70, 10, 100, "#");
 
-    @SettingInfo(name = {
-            @Text(label = "Target Color", language = Language.English),
-            @Text(label = "目标颜色", language = Language.Chinese)
-    })
+    @SettingInfo(name = "setting.target_color")
     public static final ColorSetting targetColor = new ColorSetting(new Color(255, 85, 85, 255));
 
-    @SettingInfo(name = {
-            @Text(label = "Line Color", language = Language.English),
-            @Text(label = "同线颜色", language = Language.Chinese)
-    })
+    @SettingInfo(name = "setting.line_color")
     public static final ColorSetting lineColor = new ColorSetting(new Color(255, 255, 85, 255));
 
     private static final List<LivingEntity> trackedMobs = new ArrayList<>();

@@ -10,12 +10,12 @@ import com.example.client.events.ChatEvent;
 import com.example.client.events.PacketEvent;
 import com.example.client.events.SoundPacketEvent;
 import com.example.client.events.TickEvent;
+import com.example.client.language.GuiText;
 import com.example.client.module.AbstractModule;
 import com.example.client.module.modules.DPSCounter;
 import com.example.client.module.modules.Notification;
 import com.example.client.module.modules.TargetHud;
 import com.example.client.utils.*;
-import com.example.client.utils.render.ToastUtils;
 import com.example.client.utils.record.HitResult;
 import com.example.client.utils.record.ShotRecord;
 import net.minecraft.ChatFormatting;
@@ -138,14 +138,16 @@ public class ServerTracker implements IMinecraft {
 
             long time = System.currentTimeMillis() - roundTime;
             String timeStr = formatSeconds((int) (time / 1000L));
-            Component message = Component.literal("You completed ").withStyle(ChatFormatting.AQUA)
-                    .append(Component.literal("Round " + lastRound).withStyle(ChatFormatting.RED))
-                    .append(Component.literal(" in ").withStyle(ChatFormatting.YELLOW))
-                    .append(Component.literal(timeStr)).withStyle(ChatFormatting.GREEN)
+                Component message = GuiText.text("toast.completed").copy().withStyle(ChatFormatting.AQUA)
+                    .append(GuiText.text("toast.round", lastRound).copy().withStyle(ChatFormatting.RED))
+                    .append(GuiText.text("toast.in").copy().withStyle(ChatFormatting.YELLOW))
+                    .append(Component.literal(timeStr).withStyle(ChatFormatting.GREEN))
                     .append(Component.literal("!").withStyle(ChatFormatting.YELLOW));
             AbstractModule notification = ZombiesModClient.moduleManager.getModule("Notification");
             if(notification.isEnable() && Notification.roundRecorder.getValue()) {
-                ToastUtils.show("Round Recorder", message);
+                ChatUtils.print(GuiText.text("toast.round_recorder").copy()
+                        .append(Component.literal("\n"))
+                        .append(message));
             }
 
             roundTime = System.currentTimeMillis();
@@ -153,8 +155,16 @@ public class ServerTracker implements IMinecraft {
 
             if(notification.isEnable() && Notification.roundSuggest.getValue()) {
                 if(ZombiesUtils.getMap() == ZombiesMap.ALIEN_ARCADIUM) {
-                    ToastUtils.show("Round " + currentRound, ZombiesSpawnTable.getMonsters(currentRound), 8000);
-                    ToastUtils.show("Round " + currentRound, ZombiesSpawnTable.getLocation(currentRound), 8000);
+                    int nextRound = currentRound + 1;
+                    ZombiesSpawnTable.SpawnInfo info = ZombiesSpawnTable.get(nextRound);
+                    if (info != null) {
+                        Component spawnMessage = GuiText.text("toast.monsters", info.monsters()).copy()
+                                .append(Component.literal("\n"))
+                                .append(GuiText.text("toast.location", info.location()));
+                        ChatUtils.print(GuiText.text("toast.next_round", nextRound).copy()
+                            .append(Component.literal("\n"))
+                            .append(spawnMessage));
+                    }
                 }
 
             }

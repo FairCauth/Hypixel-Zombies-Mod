@@ -42,8 +42,7 @@ public class SettingManager {
                 Object fieldValue = declaredField.get(instance);
                 if (!(fieldValue instanceof Setting<?> setting))
                     throw new RuntimeException(String.format("错误的设置 %s", declaredField));
-                //System.out.println(Language.getLabel(settingInfo.name(), Language.getLanguage()));
-                setting.setTexts(settingInfo.name());
+                setting.setTextKey(settingInfo.name());
             }
 
         }

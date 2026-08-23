@@ -3,7 +3,7 @@ package com.example.client.module.modules;
 import com.darkmagician6.eventapi.EventTarget;
 import com.example.client.events.RenderEvent;
 import com.example.client.language.Language;
-import com.example.client.language.Text;
+import com.example.client.language.GuiText;
 import com.example.client.module.AbstractModule;
 import com.example.client.module.annotation.ModuleInfo;
 import com.example.client.setting.annotation.SettingInfo;
@@ -28,30 +28,15 @@ import java.util.List;
  * @see com.example.client.mixin.MinecraftMixin
  */
 
-@ModuleInfo(name = {
-        @Text(label = "Teammates Glow", language = Language.English),
-        @Text(label = "队友高亮显示", language = Language.Chinese)
-}, enable = true)
+@ModuleInfo(name = "module.teammates_glow", enable = true)
 public class TeammatesGlow extends AbstractModule {
-    @SettingInfo(name = {
-            @Text(label = "Only In Zombies", language = Language.English),
-            @Text(label = "仅在僵尸末日里", language = Language.Chinese)
-    })
+    @SettingInfo(name = "setting.only_in_zombies")
     public static final BooleanSetting onlyGame = new BooleanSetting(true);
-    @SettingInfo(name = {
-            @Text(label = "Info", language = Language.English),
-            @Text(label = "队友信息", language = Language.Chinese)
-    })
+    @SettingInfo(name = "setting.info")
     public static final BooleanSetting info = new BooleanSetting(true);
-    @SettingInfo(name = {
-            @Text(label = "X", language = Language.English),
-            @Text(label = "X", language = Language.Chinese)
-    })
+    @SettingInfo(name = "setting.x")
     public static final NumberSetting posX = new NumberSetting(0.1, 0, 1, "#.00");
-    @SettingInfo(name = {
-            @Text(label = "Y", language = Language.English),
-            @Text(label = "Y", language = Language.Chinese)
-    })
+    @SettingInfo(name = "setting.y")
     public static final NumberSetting posY = new NumberSetting(0.1, 0, 1, "#.00");
 
     /** 每个队友的血条动画状态（按名字）。 */
@@ -161,7 +146,7 @@ public class TeammatesGlow extends AbstractModule {
 
             if (terminal) {
                 String terminalText = ti.getStatusText().isBlank()
-                        ? "DEAD"
+                        ? GuiText.textString("hud.dead")
                         : ti.getStatusText().toUpperCase(Locale.ROOT);
                 Color terminalColor = new Color(255, 85, 85);
                 int statusWidth = mc.font.width(terminalText);
@@ -172,8 +157,8 @@ public class TeammatesGlow extends AbstractModule {
             } else if(down) {
                 boolean reviving = ti.isBeingRevived();
                 String str = reviving
-                        ? "REVIVING " + String.format("%.1f", ti.getReviveSeconds()) + "s"
-                        : "REVIVE";
+                        ? GuiText.textString("hud.reviving", String.format("%.1f", ti.getReviveSeconds()))
+                        : GuiText.textString("hud.revive");
                 Component status = Component.literal(str)
                         .withStyle(reviving ? ChatFormatting.AQUA : ChatFormatting.GREEN);
                 int strW = mc.font.width(status);

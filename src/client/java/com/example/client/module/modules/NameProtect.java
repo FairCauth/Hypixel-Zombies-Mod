@@ -3,7 +3,6 @@ package com.example.client.module.modules;
 import com.example.client.config.ZombiesConfig;
 import com.example.client.gui.NameProtectScreen;
 import com.example.client.language.Language;
-import com.example.client.language.Text;
 import com.example.client.module.AbstractModule;
 import com.example.client.module.annotation.ModuleInfo;
 import net.minecraft.client.Minecraft;
@@ -21,10 +20,7 @@ import java.util.Objects;
  * 本模块作为一次性入口——开启即打开 GUI 再自动关闭。
  * 名字渲染替换在别处用 {@link #display(String)} 接入。
  */
-@ModuleInfo(name = {
-        @Text(label = "Name Protect", language = Language.English),
-        @Text(label = "名字保护", language = Language.Chinese)
-}, enable = false)
+@ModuleInfo(name = "module.name_protect", enable = false)
 public class NameProtect extends AbstractModule {
 
     @Override

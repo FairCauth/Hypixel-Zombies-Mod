@@ -6,7 +6,6 @@ import com.example.client.events.ChatEvent;
 import com.example.client.events.RenderEvent;
 import com.example.client.events.TickEvent;
 import com.example.client.language.Language;
-import com.example.client.language.Text;
 import com.example.client.module.AbstractModule;
 import com.example.client.module.annotation.ModuleInfo;
 import com.example.client.setting.annotation.SettingInfo;
@@ -38,28 +37,16 @@ import java.util.Map;
  * 伤害飘字（类原神）：怪掉血时在它身上飘出掉血量，2D 投影到屏幕，带上浮+淡出+按伤害比例变色。
  * 伤害值 = 实体 getHealth() 的下降量（真实掉血），飘字位置 = 该实体头顶（世界坐标投影到屏幕）。
  */
-@ModuleInfo(name = {
-        @Text(label = "Show Number", language = Language.English),
-        @Text(label = "数字显示", language = Language.Chinese)
-}, enable = false)
+@ModuleInfo(name = "module.damage_numbers", enable = false)
 public class DamageNumbers extends AbstractModule {
 
-    @SettingInfo(name = {
-            @Text(label = "Only In Zombies", language = Language.English),
-            @Text(label = "仅在僵尸末日里", language = Language.Chinese)
-    })
+    @SettingInfo(name = "setting.only_in_zombies")
     public static final BooleanSetting onlyGame = new BooleanSetting(true);
 
-    @SettingInfo(name = {
-            @Text(label = "Show Damage", language = Language.English),
-            @Text(label = "显示伤害", language = Language.Chinese)
-    })
+    @SettingInfo(name = "setting.show_damage")
     public static final BooleanSetting showDamage = new BooleanSetting(true);
 
-    @SettingInfo(name = {
-            @Text(label = "Show Gold", language = Language.English),
-            @Text(label = "显示金钱", language = Language.Chinese)
-    })
+    @SettingInfo(name = "setting.show_gold")
     public static final BooleanSetting showGold = new BooleanSetting(true);
 
     /** 自定义字体（assets/zombies-mod/font/damage.json → yuanshen.ttf）。 */

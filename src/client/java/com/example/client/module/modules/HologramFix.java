@@ -2,7 +2,6 @@ package com.example.client.module.modules;
 
 import com.example.client.ZombiesModClient;
 import com.example.client.language.Language;
-import com.example.client.language.Text;
 import com.example.client.module.AbstractModule;
 import com.example.client.module.annotation.ModuleInfo;
 import com.example.client.setting.annotation.SettingInfo;
@@ -19,16 +18,10 @@ import com.example.client.setting.settings.BooleanSetting;
  * 本模块开启后，让准星实体射线无视所有盔甲架（见 GameRendererPickMixin），
  * 这样 hitResult 不会是盔甲架，右键正常落到 useItem（开枪）/ 后面的方块上。
  */
-@ModuleInfo(name = {
-        @Text(label = "Hologram Fix", language = Language.English),
-        @Text(label = "全息字穿透", language = Language.Chinese)
-}, enable = false)
+@ModuleInfo(name = "module.hologram_fix", enable = false)
 public class HologramFix extends AbstractModule {
 
-    @SettingInfo(name = {
-            @Text(label = "Only In Zombies", language = Language.English),
-            @Text(label = "仅在僵尸末日里", language = Language.Chinese)
-    })
+    @SettingInfo(name = "setting.only_in_zombies")
     public static final BooleanSetting onlyGame = new BooleanSetting(true);
 
     public HologramFix() {

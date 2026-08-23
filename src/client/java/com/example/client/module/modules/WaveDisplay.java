@@ -4,7 +4,7 @@ import com.darkmagician6.eventapi.EventTarget;
 import com.example.client.data.ZombiesWaves;
 import com.example.client.events.RenderEvent;
 import com.example.client.language.Language;
-import com.example.client.language.Text;
+import com.example.client.language.GuiText;
 import com.example.client.module.AbstractModule;
 import com.example.client.module.annotation.ModuleInfo;
 import com.example.client.setting.annotation.SettingInfo;
@@ -15,33 +15,22 @@ import com.example.client.utils.PlayerUtils;
 import com.example.client.utils.ZombiesMap;
 import com.example.client.utils.ZombiesUtils;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.network.chat.Component;
 
 /**
  * 波数显示：右下角列出当前回合各波次，用箭头指示当前波、变暗已过波。
  * 回合号/回合起始时间来自 {@link ServerTracker}；波次时间表见 {@link ZombiesWaves}。
  */
-@ModuleInfo(name = {
-        @Text(label = "Wave Display", language = Language.English),
-        @Text(label = "波数显示", language = Language.Chinese)
-}, enable = false)
+@ModuleInfo(name = "module.wave_display", enable = false)
 public class WaveDisplay extends AbstractModule {
 
-    @SettingInfo(name = {
-            @Text(label = "Only In Zombies", language = Language.English),
-            @Text(label = "仅在僵尸末日里", language = Language.Chinese)
-    })
+    @SettingInfo(name = "setting.only_in_zombies")
     public static final BooleanSetting onlyGame = new BooleanSetting(true);
 
-    @SettingInfo(name = {
-            @Text(label = "X", language = Language.English),
-            @Text(label = "X", language = Language.Chinese)
-    })
+    @SettingInfo(name = "setting.x")
     public static final NumberSetting posX = new NumberSetting(0.82, 0, 1, "#.00");
 
-    @SettingInfo(name = {
-            @Text(label = "Y", language = Language.English),
-            @Text(label = "Y", language = Language.Chinese)
-    })
+    @SettingInfo(name = "setting.y")
     public static final NumberSetting posY = new NumberSetting(0.60, 0, 1, "#.00");
 
     public WaveDisplay() {
@@ -79,14 +68,14 @@ public class WaveDisplay extends AbstractModule {
 
         // 标题：回合 + 地图 + (boss 标记) + 距下一波倒计时
         double toNext = ZombiesWaves.secondsToNextWave(waves, elapsed);
-        String header = "Round " + round + " [" + mapName(map) + "]"
-                + (boss ? " BOSS" : "")
-                + (toNext >= 0 ? "  (next " + String.format("%.1fs", toNext) + ")" : "");
+        Component header = GuiText.text("hud.round_title", round, mapName(map),
+            boss ? GuiText.textString("hud.boss") : "",
+            toNext >= 0 ? GuiText.textString("hud.next", String.format("%.1f", toNext)) : "");
         graphics.text(mc.font, header, x, y, boss ? 0xFFFF5555 : 0xFFFFFFFF, true);
         y += lineHeight + 2;
 
         for (int i = 0; i < waves.length; i++) {
-            String label = "Wave " + (i + 1) + "  " + formatClock(waves[i]);
+            Component label = GuiText.text("hud.wave_time", i + 1, formatClock(waves[i]));
 
             // AA 逐波 boss：巨人/Old One/两者，分别用不同颜色（非 AA 始终 NONE）
             ZombiesWaves.WaveBoss wb = ZombiesWaves.aaWaveBoss(map, round, i + 1);
@@ -117,11 +106,11 @@ public class WaveDisplay extends AbstractModule {
 
     private static String mapName(ZombiesMap map) {
         return switch (map) {
-            case DEAD_END -> "Dead End";
-            case BAD_BLOOD -> "Bad Blood";
-            case ALIEN_ARCADIUM -> "Alien Arcadium";
-            case THE_LAB -> "The Lab";
-            case PRISON -> "Prison";
+            case DEAD_END -> GuiText.textString("map.dead_end");
+            case BAD_BLOOD -> GuiText.textString("map.bad_blood");
+            case ALIEN_ARCADIUM -> GuiText.textString("map.alien_arcadium");
+            case THE_LAB -> GuiText.textString("map.the_lab");
+            case PRISON -> GuiText.textString("map.prison");
             case NULL -> "?";
         };
     }

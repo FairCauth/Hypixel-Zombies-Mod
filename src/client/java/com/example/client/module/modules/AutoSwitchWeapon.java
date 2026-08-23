@@ -7,7 +7,6 @@ import com.example.client.events.TickEvent;
 import com.example.client.gui.AutoSwitchWeaponScreen;
 import com.example.client.gui.ZombiesConfigScreen;
 import com.example.client.language.Language;
-import com.example.client.language.Text;
 import com.example.client.module.AbstractModule;
 import com.example.client.module.annotation.ModuleInfo;
 import com.example.client.setting.annotation.SettingInfo;
@@ -27,23 +26,15 @@ import net.minecraft.world.phys.EntityHitResult;
 import java.util.Arrays;
 import java.util.EnumMap;
 
-@ModuleInfo(name = {
-        @Text(label = "Auto Switch Weapon", language = Language.English),
-        @Text(label = "自动切换武器", language = Language.Chinese)
-}, enable = true)
+@ModuleInfo(name = "module.auto_switch_weapon", enable = true)
 public class AutoSwitchWeapon extends AbstractModule {
 
 
-    @SettingInfo(name = {
-            @Text(label = "Switch Delay", language = Language.English)
-    })
+    @SettingInfo(name = "setting.switch_delay")
     public static final NumberSetting switchDelay = new NumberSetting(200, 10, 1000, "#");
 
 
-    @SettingInfo(name = {
-            @Text(label = "Guns Config", language = Language.English),
-            @Text(label = "枪械配置", language = Language.English)
-    })
+    @SettingInfo(name = "setting.guns_config")
     public static final ButtonSetting gunsConfig = new ButtonSetting() {
         @Override
         public void onClickedButton() {
@@ -54,18 +45,13 @@ public class AutoSwitchWeapon extends AbstractModule {
         }
     };
 
-    @SettingInfo(name = {
-            @Text(label = "Delay Mode", language = Language.English)
-    })
+    @SettingInfo(name = "setting.delay_mode")
     // Interval全局线性间隔 Cooldown = 每把枪独立冷
     public static final ModeSetting delayMode = new ModeSetting("Interval", Arrays.asList("Interval", "Cooldown"),
             new SettingAttribute<>(switchDelay, "Interval"),
             new SettingAttribute<>(gunsConfig, "Cooldown")
     );
-    @SettingInfo(name = {
-            @Text(label = "Auto Reload (Durability 1)", language = Language.English),
-            @Text(label = "耐久1自动换弹", language = Language.Chinese)
-    })
+    @SettingInfo(name = "setting.auto_reload_durability_1")
     public static final BooleanSetting autoReload = new BooleanSetting(false);
 
     public AutoSwitchWeapon() {

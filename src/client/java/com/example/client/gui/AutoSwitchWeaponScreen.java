@@ -4,6 +4,7 @@ import com.example.client.config.AutoSwitchWeaponConfig;
 import com.example.client.data.ZombiesGuns;
 import com.example.client.config.ZombiesConfig;
 import com.example.client.config.AutoSwitchWeaponConfig.GunSwitchSetting;
+import com.example.client.language.GuiText;
 import com.example.client.utils.render.DoubleSliderButton;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.ChatFormatting;
@@ -41,7 +42,7 @@ public class AutoSwitchWeaponScreen extends Screen {
     private static final int BIND_WIDTH = 52;
 
     public AutoSwitchWeaponScreen(Screen parent) {
-        super(Component.literal("Auto Switch Weapon"));
+        super(GuiText.text("auto_switch_weapon"));
         this.parent = parent;
     }
 
@@ -59,7 +60,7 @@ public class AutoSwitchWeaponScreen extends Screen {
         this.addRenderableWidget(this.scrollPanel);
 
         this.addRenderableWidget(Button.builder(
-                Component.literal("Done"),
+                GuiText.text("done"),
                 button -> {
                     ZombiesConfig.save();
                     this.onClose();
@@ -108,14 +109,15 @@ public class AutoSwitchWeaponScreen extends Screen {
 
             this.scrollPanel.addModuleBox("", rowStartY, rowHeight, has);
             this.scrollPanel.addScrollText(
-                    gun.getDisplayName(),
+                    gun.getLocalizedDisplayName(),
                     nameX,
                     y + 7,
                     has ? 0xFF55FF55 : 0xFFFFFFFF, // 拥有=绿色名字
                     true
             );
             this.scrollPanel.addScrollText(
-                    "Damage: " + gun.getDamage() + "  Gold: " + gun.getGold() + "/" + gun.getCriticalGold(),
+                        GuiText.textString("damage_label", gun.getDamage()) + "  "
+                            + GuiText.textString("gold_label", gun.getGold(), gun.getCriticalGold()),
                     nameX,
                     y + 23,
                     0xFFAAAAAA,
@@ -183,8 +185,8 @@ public class AutoSwitchWeaponScreen extends Screen {
 
         graphics.text(
                 this.font,
-                "Auto Switch Weapon",
-                this.width / 2 - this.font.width("Auto Switch Weapon") / 2,
+                GuiText.text("auto_switch_weapon"),
+                this.width / 2 - this.font.width(GuiText.text("auto_switch_weapon")) / 2,
                 10,
                 0xFFFFFFFF,
                 true
@@ -203,11 +205,11 @@ public class AutoSwitchWeaponScreen extends Screen {
         int foldX = bindX - FOLD_WIDTH - 8;
         int switchX = foldX - SWITCH_WIDTH - 12;
 
-        graphics.text(this.font, "Weapon", panelX + 28, 49, 0xFFAAAAAA, false);
-        graphics.text(this.font, "Switch", panelX + switchX, 49, 0xFFAAAAAA, false);
-        graphics.text(this.font, "Fold", panelX + foldX, 49, 0xFFAAAAAA, false);
-        graphics.text(this.font, "Key", panelX + bindX, 49, 0xFFAAAAAA, false);
-        graphics.text(this.font, "Cooldowns: Base / Ultimate level", panelX + 230, 49, 0xFFAAAAAA, false);
+        graphics.text(this.font, GuiText.text("weapon"), panelX + 28, 49, 0xFFAAAAAA, false);
+        graphics.text(this.font, GuiText.text("switch"), panelX + switchX, 49, 0xFFAAAAAA, false);
+        graphics.text(this.font, GuiText.text("fold"), panelX + foldX, 49, 0xFFAAAAAA, false);
+        graphics.text(this.font, GuiText.text("key"), panelX + bindX, 49, 0xFFAAAAAA, false);
+        graphics.text(this.font, GuiText.text("cooldowns"), panelX + 230, 49, 0xFFAAAAAA, false);
 
         graphics.fill(24, 60, this.width - 24, 61, 0xFF333333);
     }
@@ -257,22 +259,23 @@ public class AutoSwitchWeaponScreen extends Screen {
 
     private static Component weaponText(ZombiesGuns gun) {
         return Component.literal(gun.getDisplayName() + "  ")
-                .append(Component.literal("DMG " + gun.getDamage())
+                .append(GuiText.text("damage").copy().append(Component.literal(String.valueOf(gun.getDamage())))
                         .withStyle(ChatFormatting.GRAY));
     }
 
     private static Component switchText(boolean value) {
-        return Component.literal("Switch: ")
-                .append(Component.literal(value ? "ON" : "OFF")
+        return GuiText.text("switch").copy().append(Component.literal(": "))
+                .append(GuiText.text(value ? "on" : "off").copy()
                         .withStyle(value ? ChatFormatting.GREEN : ChatFormatting.RED));
     }
 
     private static String cooldownLabel(ZombiesGuns gun, int ultimateLevel) {
         double damage = gun.getDamageByUltimateLevel(ultimateLevel);
         if (ultimateLevel <= 0) {
-            return "Base (DMG " + damage + ")";
+            return GuiText.textString("base") + " (" + GuiText.textString("damage") + damage + ")";
         }
-        return "Ultimate " + toRoman(ultimateLevel) + " (DMG " + damage + ")";
+        return GuiText.textString("ultimate") + " " + toRoman(ultimateLevel)
+            + " (" + GuiText.textString("damage") + damage + ")";
     }
 
     private static String toRoman(int value) {

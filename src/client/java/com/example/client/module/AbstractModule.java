@@ -1,8 +1,7 @@
 package com.example.client.module;
 
 import com.darkmagician6.eventapi.EventManager;
-import com.example.client.language.Language;
-import com.example.client.language.Text;
+import com.example.client.language.GuiText;
 import com.example.client.module.annotation.ModuleInfo;
 import com.example.client.setting.Setting;
 import com.example.client.setting.SettingManager;
@@ -12,10 +11,11 @@ import com.example.client.utils.render.ToastUtils;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
 
 public class AbstractModule extends SettingManager implements IMinecraft {
     @Getter
-    private final Text[] texts;
+    private final String textKey;
 
     @Getter
     @Setter
@@ -26,7 +26,7 @@ public class AbstractModule extends SettingManager implements IMinecraft {
         ModuleInfo moduleInfo = this.getClass().getAnnotation(ModuleInfo.class);
         if (moduleInfo == null)
             throw new RuntimeException(String.format("未检测到模块信息 %s", getClass().getName()));
-        this.texts = moduleInfo.name();
+        this.textKey = moduleInfo.name();
         this.key = moduleInfo.key();
         this.enable = moduleInfo.enable();
         setEnable(enable);
@@ -55,7 +55,8 @@ public class AbstractModule extends SettingManager implements IMinecraft {
             EventManager.register(this);
             if(mc.player != null)
             {
-                ChatUtils.print(ChatFormatting.AQUA + getName() +ChatFormatting.GRAY+ " was " + ChatFormatting.GREEN +"Enabled");
+                ChatUtils.print(Component.literal(getName()).withStyle(ChatFormatting.AQUA)
+                    .append(GuiText.text("chat.enabled").copy().withStyle(ChatFormatting.GRAY)));
 //                ToastUtils.show("Module", ChatFormatting.AQUA + getName() +ChatFormatting.GRAY+ " was " + ChatFormatting.GREEN +"Enabled");
             }
             onEnable();
@@ -63,7 +64,8 @@ public class AbstractModule extends SettingManager implements IMinecraft {
             EventManager.unregister(this);
             if(mc.player != null)
             {
-                ChatUtils.print(ChatFormatting.AQUA + getName() +ChatFormatting.GRAY+ " was " + ChatFormatting.RED +"Disabled");
+                ChatUtils.print(Component.literal(getName()).withStyle(ChatFormatting.AQUA)
+                    .append(GuiText.text("chat.disabled").copy().withStyle(ChatFormatting.GRAY)));
 //                ToastUtils.show("Module", ChatFormatting.AQUA + getName() +ChatFormatting.GRAY+ " was " + ChatFormatting.RED +"Disabled");
             }
 
@@ -72,11 +74,11 @@ public class AbstractModule extends SettingManager implements IMinecraft {
 
     }
     public String getNameKey() {
-        return Language.getLabel(getTexts(), Language.getDefaultLanguage());
+        return textKey;
     }
 
     public String getName() {
-        return Language.getLabel(getTexts(), Language.getLanguage());
+        return GuiText.textString(textKey);
     }
 
     protected void onEnable() {}

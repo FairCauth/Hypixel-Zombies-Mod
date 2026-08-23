@@ -3,7 +3,6 @@ package com.example.client.module.modules;
 import com.darkmagician6.eventapi.EventTarget;
 import com.example.client.events.RenderEvent;
 import com.example.client.language.Language;
-import com.example.client.language.Text;
 import com.example.client.module.AbstractModule;
 import com.example.client.module.annotation.ModuleInfo;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -13,10 +12,7 @@ import net.minecraft.resources.Identifier;
 
 import java.awt.Color;
 
-@ModuleInfo(name = {
-        @Text(label = "Hud", language = Language.English),
-        @Text(label = "Hud", language = Language.Chinese)
-}, enable = true)
+@ModuleInfo(name = "module.hud", enable = true)
 public class Hud extends AbstractModule {
     private static final FontDescription TEST_FONT =
             new FontDescription.Resource(Identifier.fromNamespaceAndPath("zombies-mod", "damage"));

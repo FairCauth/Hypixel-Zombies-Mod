@@ -5,6 +5,7 @@ import com.darkmagician6.eventapi.EventManager;
 import com.darkmagician6.eventapi.EventTarget;
 import com.example.client.config.AutoSwitchWeaponConfig;
 import com.example.client.config.ZombiesConfig;
+import com.example.client.language.GuiText;
 import com.example.client.data.ZombiesGuns;
 import com.example.client.events.FabricEvents;
 import com.example.client.events.KeyInputEvent;
@@ -16,6 +17,7 @@ import com.example.client.utils.ChatUtils;
 import com.example.client.utils.IMinecraft;
 import net.fabricmc.api.ClientModInitializer;
 import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.world.item.ItemStack;
@@ -85,7 +87,9 @@ public class ZombiesModClient implements ClientModInitializer, IMinecraft {
 			AutoSwitchWeaponConfig.GunSwitchSetting cfg = AutoSwitchWeaponConfig.get(gun);
 			if (cfg.getKey() != 0 && cfg.getKey() == event.getKey()) {
 				cfg.setEnabled(!cfg.isEnabled());
-				ChatUtils.print(ChatFormatting.YELLOW + gun.getDisplayName() + ChatFormatting.GRAY + " was " + (cfg.isEnabled() ? (ChatFormatting.GREEN + "Enabled") : (ChatFormatting.RED + "Disabled")));
+				ChatUtils.print(Component.literal(gun.getDisplayName()).withStyle(ChatFormatting.YELLOW)
+						.append(GuiText.text(cfg.isEnabled() ? "chat.enabled" : "chat.disabled").copy()
+								.withStyle(cfg.isEnabled() ? ChatFormatting.GREEN : ChatFormatting.RED)));
 				ZombiesConfig.save();
 			}
 		}

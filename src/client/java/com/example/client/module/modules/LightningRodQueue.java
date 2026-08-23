@@ -6,7 +6,7 @@ import com.example.client.events.PacketEvent;
 import com.example.client.events.RenderEvent;
 import com.example.client.events.TickEvent;
 import com.example.client.language.Language;
-import com.example.client.language.Text;
+import com.example.client.language.GuiText;
 import com.example.client.module.AbstractModule;
 import com.example.client.module.annotation.ModuleInfo;
 import com.example.client.setting.annotation.SettingInfo;
@@ -22,10 +22,7 @@ import net.minecraft.world.item.Items;
 import java.awt.Color;
 import java.util.Arrays;
 
-@ModuleInfo(name = {
-        @Text(label = "Lightning Rod Queue", language = Language.English),
-        @Text(label = "LRod 队列", language = Language.Chinese)
-}, enable = true)
+@ModuleInfo(name = "module.lightning_rod_queue", enable = true)
 public class LightningRodQueue extends AbstractModule {
     private static final int SLOT_COUNT = 4;
     private static final long COOLDOWN_MS = 20_000L;
@@ -46,16 +43,10 @@ public class LightningRodQueue extends AbstractModule {
     private static final Color READY_PROGRESS = new Color(70, 220, 120, 255);
     private static final Color COOLDOWN_PROGRESS = new Color(55, 180, 255, 255);
 
-    @SettingInfo(name = {
-            @Text(label = "X", language = Language.English),
-            @Text(label = "X", language = Language.Chinese)
-    })
+    @SettingInfo(name = "setting.x")
     public static final NumberSetting posX = new NumberSetting(0.50, 0, 1, "#.00");
 
-    @SettingInfo(name = {
-            @Text(label = "Y", language = Language.English),
-            @Text(label = "Y", language = Language.Chinese)
-    })
+    @SettingInfo(name = "setting.y")
     public static final NumberSetting posY = new NumberSetting(0.10, 0, 1, "#.00");
 
     private final long[] cooldownEndMs = new long[SLOT_COUNT];
@@ -154,7 +145,7 @@ public class LightningRodQueue extends AbstractModule {
             statusColor = COOLDOWN_TEXT;
             progress = Math.clamp(remainingMs / (float) COOLDOWN_MS, 0F, 1F);
         } else {
-            status = "RDY";
+            status = GuiText.textString("hud.ready");
             statusColor = READY_TEXT;
             progress = 1F;
         }

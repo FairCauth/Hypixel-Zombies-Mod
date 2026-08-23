@@ -6,7 +6,6 @@ import com.example.client.events.ChatEvent;
 import com.example.client.events.RenderEvent;
 import com.example.client.events.TickEvent;
 import com.example.client.language.Language;
-import com.example.client.language.Text;
 import com.example.client.module.AbstractModule;
 import com.example.client.module.annotation.ModuleInfo;
 import com.example.client.setting.annotation.SettingInfo;
@@ -18,10 +17,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 import java.util.ArrayDeque;
 
-@ModuleInfo(name = {
-        @Text(label = "DPS Counter", language = Language.English),
-        @Text(label = "每秒伤害计算", language = Language.Chinese)
-}, enable = true)
+@ModuleInfo(name = "module.d_p_s_counter", enable = true)
 public class DPSCounter extends AbstractModule {
     private record DamageEntry(
             long timeMs,
@@ -34,10 +30,7 @@ public class DPSCounter extends AbstractModule {
     private static double dps = 0.0D;
     private static double displayDps = 0.0D;
 
-    @SettingInfo(name = {
-            @Text(label = "Debug", language = Language.English),
-            @Text(label = "Debug", language = Language.Chinese)
-    })
+    @SettingInfo(name = "setting.debug")
     public static final BooleanSetting debug = new BooleanSetting(true);
 
     public DPSCounter() {

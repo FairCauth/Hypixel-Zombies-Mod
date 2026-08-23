@@ -22,12 +22,16 @@ public class ToastUtils implements IMinecraft {
     }
 
     public static void show(String title, Component message, long durationMs) {
+        show(Component.literal(title), message, durationMs);
+    }
+
+    public static void show(Component title, Component message, long durationMs) {
         if (mc.player == null || message == null) return;
 
         SystemToast.add(
                 mc.gui.toastManager(),
                 new SystemToast.SystemToastId(durationMs),
-                Component.literal(title),
+                title,
                 message
         );
     }

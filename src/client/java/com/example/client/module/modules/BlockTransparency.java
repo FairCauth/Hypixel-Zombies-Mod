@@ -2,7 +2,6 @@ package com.example.client.module.modules;
 
 import com.example.client.ZombiesModClient;
 import com.example.client.language.Language;
-import com.example.client.language.Text;
 import com.example.client.module.AbstractModule;
 import com.example.client.module.annotation.ModuleInfo;
 import net.minecraft.world.level.block.Block;
@@ -10,10 +9,7 @@ import net.minecraft.world.level.block.SlabBlock;
 import net.minecraft.world.level.block.StairBlock;
 import net.minecraft.world.level.block.state.BlockState;
 
-@ModuleInfo(name = {
-        @Text(label = "Slab See-Through", language = Language.English),
-        @Text(label = "半砖楼梯半透明", language = Language.Chinese)
-}, enable = false)
+@ModuleInfo(name = "module.block_transparency", enable = false)
 public class BlockTransparency extends AbstractModule {
 
     @Override

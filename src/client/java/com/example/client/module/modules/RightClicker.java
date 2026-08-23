@@ -4,7 +4,6 @@ import com.darkmagician6.eventapi.EventTarget;
 import com.example.client.data.ZombiesGuns;
 import com.example.client.events.RenderEvent;
 import com.example.client.language.Language;
-import com.example.client.language.Text;
 import com.example.client.module.AbstractModule;
 import com.example.client.module.annotation.ModuleInfo;
 import com.example.client.setting.annotation.SettingInfo;
@@ -32,31 +31,16 @@ import org.lwjgl.glfw.GLFW;
 
 import java.util.Arrays;
 
-@ModuleInfo(name = {
-        @Text(label = "Right Clicker", language = Language.English),
-        @Text(label = "右键连点器", language = Language.Chinese)
-}, enable = true)
+@ModuleInfo(name = "module.right_clicker", enable = true)
 public class RightClicker extends AbstractModule {
 
-    @SettingInfo(name = {
-            @Text(label = "Click Mode", language = Language.English),
-            @Text(label = "点击模式", language = Language.Chinese)
-    })
+    @SettingInfo(name = "setting.click_mode")
     private final ModeSetting mode = new ModeSetting("Simulate", Arrays.asList("Simulate", "Key"));
-    @SettingInfo(name = {
-            @Text(label = "Max CPS", language = Language.English),
-            @Text(label = "最大CPS", language = Language.Chinese)
-    })
+    @SettingInfo(name = "setting.max_cps")
     private final NumberSetting maxCPS = new NumberSetting(12, 1.0, 20.0, "#");
-    @SettingInfo(name = {
-            @Text(label = "Min CPS", language = Language.English),
-            @Text(label = "最小CPS", language = Language.Chinese)
-    })
+    @SettingInfo(name = "setting.min_cps")
     private final NumberSetting minCPS = new NumberSetting(11, 1.0, 20.0, "#");
-    @SettingInfo(name = {
-            @Text(label = "Only Guns", language = Language.English),
-            @Text(label = "只对枪生效", language = Language.Chinese)
-    })
+    @SettingInfo(name = "setting.only_guns")
     private final BooleanSetting onlyGuns = new BooleanSetting(true);
     public TimeUtils rightClickTimer = new TimeUtils();
 

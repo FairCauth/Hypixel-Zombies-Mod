@@ -4,7 +4,6 @@ import com.darkmagician6.eventapi.EventTarget;
 import com.example.client.ZombiesModClient;
 import com.example.client.events.RenderEvent;
 import com.example.client.language.Language;
-import com.example.client.language.Text;
 import com.example.client.module.AbstractModule;
 import com.example.client.module.annotation.ModuleInfo;
 import com.example.client.newrender.LiquidGlass;
@@ -19,10 +18,7 @@ import net.minecraft.client.Minecraft;
  *
  * 坐标是「帧缓冲物理像素」（和 LiquidGlass 内部 uScreenSize=main.width 一致），故用 window 物理宽高居中。
  */
-@ModuleInfo(name = {
-        @Text(label = "Liquid Glass Test", language = Language.English),
-        @Text(label = "液态玻璃测试", language = Language.Chinese)
-}, enable = false)
+@ModuleInfo(name = "module.liquid_glass_test", enable = false)
 public class LiquidGlassTest extends AbstractModule {
 
 

@@ -4,7 +4,7 @@ import com.darkmagician6.eventapi.EventTarget;
 import com.example.client.events.RenderEvent;
 import com.example.client.events.TickEvent;
 import com.example.client.language.Language;
-import com.example.client.language.Text;
+import com.example.client.language.GuiText;
 import com.example.client.module.AbstractModule;
 import com.example.client.module.annotation.ModuleInfo;
 import com.example.client.setting.annotation.SettingInfo;
@@ -24,15 +24,9 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
-@ModuleInfo(name = {
-        @Text(label = "Target Hud", language = Language.English),
-        @Text(label = "目标Hud显示", language = Language.Chinese)
-}, enable = true)
+@ModuleInfo(name = "module.target_hud", enable = true)
 public class TargetHud extends AbstractModule {
-    @SettingInfo(name = {
-            @Text(label = "Distance", language = Language.English),
-            @Text(label = "距离", language = Language.Chinese)
-    })
+    @SettingInfo(name = "setting.distance")
     private final NumberSetting distance = new NumberSetting(35, 1, 50, "#");
 
     public TargetHud() {
@@ -114,7 +108,7 @@ public class TargetHud extends AbstractModule {
         graphics.text(mc.font, name, x + 8, y + 7, nameColor, true);
         graphics.text(mc.font, hpText, x + 8, y + 18, 0xFFFF5555, true);
         if (badHeadshot) {
-            graphics.text(mc.font, "BAD", x + 105, y + 7, 0xFFFF5555, true);
+            graphics.text(mc.font, GuiText.text("hud.bad"), x + 105, y + 7, 0xFFFF5555, true);
         }
         graphics.text(mc.font, distanceText, x + 105, y + 18, 0xFFAAAAAA, true);
 //        graphics.text(mc.font, armorText, x + 8, y + 42, 0xFF55AAFF, true);

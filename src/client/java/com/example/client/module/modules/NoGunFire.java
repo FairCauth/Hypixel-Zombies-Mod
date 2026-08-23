@@ -3,7 +3,6 @@ package com.example.client.module.modules;
 import com.example.client.data.ZombiesGuns;
 import com.example.client.ZombiesModClient;
 import com.example.client.language.Language;
-import com.example.client.language.Text;
 import com.example.client.module.AbstractModule;
 import com.example.client.module.annotation.ModuleInfo;
 import com.example.client.utils.PlayerUtils;
@@ -12,10 +11,7 @@ import net.minecraft.core.particles.ParticleType;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.protocol.game.ClientboundLevelParticlesPacket;
 
-@ModuleInfo(name = {
-        @Text(label = "No Gun Fire", language = Language.English),
-        @Text(label = "屏蔽开枪火焰", language = Language.Chinese)
-}, enable = true)
+@ModuleInfo(name = "module.no_gun_fire", enable = true)
 public class NoGunFire extends AbstractModule {
     @Override
     protected void onEnable() {

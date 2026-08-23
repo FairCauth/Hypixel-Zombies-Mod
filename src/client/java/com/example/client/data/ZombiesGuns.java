@@ -1,5 +1,6 @@
 package com.example.client.data;
 
+import com.example.client.language.GuiText;
 import lombok.Getter;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -53,6 +54,25 @@ public enum ZombiesGuns {
             case Elder_Gun -> "Elder Gun";
             case Gold_Digger -> "Gold Digger";
         };
+    }
+
+    public String getLocalizedDisplayName() {
+        String key = switch (this) {
+            case Pistol -> "pistol";
+            case Rifle -> "rifle";
+            case Rainbow_Rifle -> "rainbow_rifle";
+            case Shotgun -> "shotgun";
+            case Rocket_Launcher -> "rocket_launcher";
+            case Sniper -> "sniper";
+            case Flamethrower -> "flamethrower";
+            case Blow_Dart -> "blow_dart";
+            case Zombie_Soaker -> "zombie_soaker";
+            case Zombie_Zapper -> "zombie_zapper";
+            case Double_Barrel_Shotgun -> "double_barrel_shotgun";
+            case Elder_Gun -> "elder_gun";
+            case Gold_Digger -> "gold_digger";
+        };
+        return GuiText.textString("gun." + key);
     }
     public static ZombiesGuns getGunOrNull(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return null;

@@ -1,6 +1,7 @@
 package com.example.client.gui;
 
 import com.example.client.config.ZombiesConfig;
+import com.example.client.language.GuiText;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
@@ -27,7 +28,7 @@ public class NameProtectScreen extends Screen {
     private static final int BOTTOM_SPACE = 40;
 
     public NameProtectScreen(Screen parent) {
-        super(Component.literal("Name Protect"));
+        super(GuiText.text("name_protect"));
         this.parent = parent;
     }
 
@@ -40,11 +41,11 @@ public class NameProtectScreen extends Screen {
         int cx = this.width / 2;
 
         // 输入框 + Add 按钮
-        this.nameBox = new EditBox(this.font, cx - 150, 58, 220, 20, Component.literal("Name"));
+        this.nameBox = new EditBox(this.font, cx - 150, 58, 220, 20, GuiText.text("name"));
         this.nameBox.setMaxLength(16);
         this.addRenderableWidget(this.nameBox);
 
-        this.addRenderableWidget(Button.builder(Component.literal("Add"), b -> addName())
+        this.addRenderableWidget(Button.builder(GuiText.text("add"), b -> addName())
                 .bounds(cx + 80, 58, 60, 20).build());
 
         // 滚动列表
@@ -56,7 +57,7 @@ public class NameProtectScreen extends Screen {
         buildList();
         this.addRenderableWidget(this.scrollPanel);
 
-        this.addRenderableWidget(Button.builder(Component.literal("Done"), b -> onClose())
+        this.addRenderableWidget(Button.builder(GuiText.text("done"), b -> onClose())
                 .bounds(cx - 100, this.height - 28, 200, 20).build());
     }
 
@@ -102,9 +103,10 @@ public class NameProtectScreen extends Screen {
         super.extractRenderState(graphics, mouseX, mouseY, delta);
 
         int cx = this.width / 2;
-        graphics.text(this.font, "Name Protect", cx - this.font.width("Name Protect") / 2, 8, 0xFFFFFFFF, true);
+        Component title = GuiText.text("name_protect");
+        graphics.text(this.font, title, cx - this.font.width(title) / 2, 8, 0xFFFFFFFF, true);
         NavTabs.draw(graphics, this.font, this.width, 2);
-        graphics.text(this.font, "Add name:", cx - 150, 48, 0xFFAAAAAA, true);
+        graphics.text(this.font, GuiText.text("add_name"), cx - 150, 48, 0xFFAAAAAA, true);
 
         List<String> list = names();
         int scroll = this.scrollPanel.getScrollOffset();
@@ -114,7 +116,7 @@ public class NameProtectScreen extends Screen {
             if (rowY + ROW_HEIGHT <= panelY || rowY >= panelY + panelH) continue;
 
             graphics.text(this.font, list.get(i), panelX + 8, rowY + 6, 0xFFFFFFFF, true);
-            String alias = "→ Player" + (i + 1);
+            String alias = GuiText.textString("player") + (i + 1);
             graphics.text(this.font, alias, panelX + 150, rowY + 6, 0xFF66CCFF, true);
         }
         graphics.disableScissor();

@@ -1,10 +1,12 @@
 package com.example.client.gui;
 
 import com.example.client.config.ZombiesConfig;
+import com.example.client.language.GuiText;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 
 /**
  * MC 统计界面那种"标签页"样式的顶部导航栏（自绘，非按钮）。四个屏幕共用：
@@ -15,7 +17,7 @@ import net.minecraft.client.gui.screens.Screen;
 public final class NavTabs {
     private NavTabs() {}
 
-    public static final String[] LABELS = {"Features", "Guns Config", "Name Protect", "Stats Query"};
+    private static final String[] LABEL_KEYS = {"features", "guns_config", "name_protect", "stats_query"};
 
     public static final int Y = 22;
     public static final int H = 20;
@@ -29,7 +31,7 @@ public final class NavTabs {
     public static void draw(GuiGraphicsExtractor g, Font font, int screenW, int active) {
         int[] b = bounds(screenW);
         int x0 = b[0], total = b[1];
-        int n = LABELS.length;
+        int n = LABEL_KEYS.length;
         int tabW = total / n;
         int yBot = Y + H;
 
@@ -47,8 +49,8 @@ public final class NavTabs {
             if (!act) g.fill(x, yBot - 1, xe, yBot, bd); // 未选中：下边封口
 
             int col = act ? 0xFFFFFFFF : 0xFFB0B0B0;
-            String s = LABELS[i];
-            g.text(font, s, x + (xe - x) / 2 - font.width(s) / 2, Y + 6, col, true);
+            Component text = GuiText.text(LABEL_KEYS[i]);
+            g.text(font, text, x + (xe - x) / 2 - font.width(text) / 2, Y + 6, col, true);
         }
 
         // 内容顶部分隔线，在选中标签处断开 → 选中页和内容"连体"
@@ -64,7 +66,7 @@ public final class NavTabs {
         int[] b = bounds(screenW);
         int x0 = b[0], total = b[1];
         if (mouseX < x0 || mouseX > x0 + total) return -1;
-        int n = LABELS.length;
+        int n = LABEL_KEYS.length;
         int tabW = total / n;
         int i = (int) ((mouseX - x0) / tabW);
         return Math.min(i, n - 1);

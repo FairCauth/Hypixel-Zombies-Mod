@@ -1,30 +1,19 @@
 package com.example.client.module.modules;
 
 import com.example.client.language.Language;
-import com.example.client.language.Text;
 import com.example.client.module.AbstractModule;
 import com.example.client.module.annotation.ModuleInfo;
 import com.example.client.setting.annotation.SettingInfo;
 import com.example.client.setting.settings.BooleanSetting;
 import com.example.client.setting.settings.NumberSetting;
 
-@ModuleInfo(name = {
-        @Text(label = "Hide Blocking Player", language = Language.English),
-        @Text(label = "隐藏阻挡玩家", language = Language.Chinese)
-}, enable = true)
+@ModuleInfo(name = "module.hide_blocking_player", enable = true)
 public class HideBlockingPlayer extends AbstractModule {
-    @SettingInfo(name = {
-            @Text(label = "Hide Overlap Expand", language = Language.English)
-    })
+    @SettingInfo(name = "setting.hide_overlap_expand")
     public static final NumberSetting fadeOverlapExpand = new NumberSetting(0.15d, 0, 1d,"#.0");
-//    @SettingInfo(name = {
-//            @Text(label = "Fade Player Alpha", language = Language.English)
-//    })
+//    @SettingInfo(name = "setting.fade_player_alpha")
 //    public static final NumberSetting fadePlayerAlpha = new NumberSetting(100, 0, 255,"#");
-    @SettingInfo(name = {
-            @Text(label = "Full Hide", language = Language.English),
-            @Text(label = "完全隐藏", language = Language.Chinese)
-    })
+    @SettingInfo(name = "setting.full_hide")
     public static final BooleanSetting fullHide = new BooleanSetting(false);
 
 
