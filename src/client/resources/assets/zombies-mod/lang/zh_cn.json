@@ -65,6 +65,7 @@
   "zombies-mod.hud.down": "已倒下",
   "zombies-mod.hud.quit": "已退出",
   "zombies-mod.hud.blocking": "格挡中",
+  "zombies-mod.hud.shift": "潜行中",
   "zombies-mod.hud.reviving": "救援中 %s秒",
   "zombies-mod.hud.revive": "救援",
   "zombies-mod.hud.ready": "就绪",

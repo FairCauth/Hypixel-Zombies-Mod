@@ -65,6 +65,7 @@
   "zombies-mod.hud.down": "DOWN",
   "zombies-mod.hud.quit": "QUIT",
   "zombies-mod.hud.blocking": "Blocking",
+  "zombies-mod.hud.shift": "Sneaking",
   "zombies-mod.hud.reviving": "REVIVING %ss",
   "zombies-mod.hud.revive": "REVIVE",
   "zombies-mod.hud.ready": "RDY",

@@ -92,12 +92,15 @@ public class SidebarHealthMixin {
         String healthText = zombiesmod$healthText(player);
         String blockingText = PlayerUtils.isPlayerBlockingHyp(player)
                 ? " (" + GuiText.textString("hud.blocking") + ")" : "";
+        String shiftText = player.isShiftKeyDown()
+                ? " (" + GuiText.textString("hud.shift") + ")" : "";
         ChatFormatting healthColor = percent > 0.5F
                 ? ChatFormatting.GREEN : percent > 0.25F ? ChatFormatting.YELLOW : ChatFormatting.RED;
         Component replacement = Component.literal(healthText)
                 .withStyle(healthColor)
                 .append(text.copy())
-                .append(Component.literal(blockingText).withStyle(ChatFormatting.YELLOW));
+                .append(Component.literal(blockingText).withStyle(ChatFormatting.YELLOW))
+                .append(Component.literal(shiftText).withStyle(ChatFormatting.AQUA));
 
         graphics.text(font, replacement, x, y, color, shadow);
         }
@@ -117,7 +120,9 @@ public class SidebarHealthMixin {
         private static String zombiesmod$healthDecoration(Player player) {
                 return zombiesmod$healthText(player)
                                 + (PlayerUtils.isPlayerBlockingHyp(player)
-                                ? "(" + GuiText.textString("hud.blocking") + ")" : "");
+                                ? "(" + GuiText.textString("hud.blocking") + ")" : "")
+                                + (player.isShiftKeyDown()
+                                ? " (" + GuiText.textString("hud.shift") + ")" : "");
         }
 
         private static String zombiesmod$healthText(Player player) {
