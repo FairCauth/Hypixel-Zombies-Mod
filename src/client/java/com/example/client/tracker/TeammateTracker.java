@@ -40,7 +40,9 @@ public class TeammateTracker implements IMinecraft {
 
                 current.add(name);
                 TeammateInfo info = TEAMMATES.computeIfAbsent(name, TeammateInfo::new);
-                info.setGold(sp.gold());
+                if (sp.gold() != null) {
+                    info.setGold(sp.gold());
+                }
                 info.setPlayerState(sp.state());
                 info.setStatusText(sp.statusText());
                 info.setDown(sp.state() == TeammateInfo.PlayerState.DOWN);

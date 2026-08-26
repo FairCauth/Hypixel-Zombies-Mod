@@ -104,8 +104,11 @@ public class SidebarHealthMixin {
                         }
 
                         Player player = teammate.getRenderEntity();
+                        Component nameLine = teammate.getStatusText().isBlank()
+                                        ? Component.literal(playerName).append(zombiesmod$goldDecoration(teammate))
+                                        : line.component();
                         entries.add(new SidebarEntry(
-                                        Component.literal(playerName).append(zombiesmod$goldDecoration(teammate)),
+                                        nameLine,
                                         zombiesmod$playerInfo(teammate, player, line.component(), teammate.getName()),
                                         player
                         ));
@@ -122,10 +125,7 @@ public class SidebarHealthMixin {
                         TeammateInfo teammate, Player player, Component original, String playerName) {
                 String statusText = zombiesmod$statusText(teammate);
                 if (statusText != null) {
-                        ChatFormatting statusColor = teammate.getPlayerState() == TeammateInfo.PlayerState.DOWN
-                                        ? ChatFormatting.YELLOW : ChatFormatting.RED;
-                        return Component.literal(statusText).withStyle(statusColor)
-                                        .append(zombiesmod$killsDecoration(original, playerName));
+                        return zombiesmod$killsDecoration(original, playerName);
                 }
                 if (player == null) {
                         return Component.empty()
@@ -148,7 +148,7 @@ public class SidebarHealthMixin {
         }
 
         private static Component zombiesmod$goldDecoration(TeammateInfo teammate) {
-                return Component.literal(" " + String.format("%,d", teammate.getGold()))
+                return Component.literal(": " + String.format("%,d", teammate.getGold()))
                                 .withStyle(ChatFormatting.GOLD);
         }
 
