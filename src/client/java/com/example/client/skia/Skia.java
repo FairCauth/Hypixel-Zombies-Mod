@@ -2,7 +2,6 @@ package com.example.client.skia;
 
 
 import com.example.client.skia.fbo.GameFramebuffer;
-import com.example.client.skia.image.ImageInGame;
 import com.example.client.skia.state.GLStateStack;
 import com.example.client.utils.IMinecraft;
 import com.mojang.blaze3d.opengl.GlStateManager;
@@ -119,14 +118,16 @@ public final class Skia implements IMinecraft {
     }
 
     private static void endFrame() {
-        if (surface != null) {
-            surface.flushAndSubmit();
-        }
-
         try {
-            GLStateStack.pop();
-        } catch (Exception e) {
-            GLStateStack.clear();
+            if (surface != null) {
+                surface.flushAndSubmit();
+            }
+        } finally {
+            try {
+                GLStateStack.pop();
+            } catch (Exception e) {
+                GLStateStack.clear();
+            }
         }
     }
 
@@ -143,28 +144,34 @@ public final class Skia implements IMinecraft {
         checkAndUpdateSurface();
         beginFrame();
 
-        int textureId = getColorTextureId(mc.getMainRenderTarget());
-        image = ImageInGame.getCachedImage(
-                context,
-                textureId,
-                lastWidth,
-                lastHeight,
-                SurfaceOrigin.BOTTOM_LEFT,
-                ColorType.RGB_888X
-        );
-
-        CanvasStack canvasStack = new CanvasStack(canvas);
+        Image frameSnapshot = null;
         try {
-            canvasStack.push();
-            float scale = (float) mc.getWindow().getGuiScale();
-            canvasStack.scale(scale, scale);
-            renderCallback.accept(canvasStack, customLayer);
-//            customLayer.render(canvasStack);
-//            EventManager.call(new RenderSkiaEvent(canvasStack));
+            // Blur must never sample the same framebuffer that the Canvas is writing to.
+            // A surface snapshot stays immutable while this frame's Skia UI is rendered.
+            frameSnapshot = surface.makeImageSnapshot();
+            image = frameSnapshot;
+
+            CanvasStack canvasStack = new CanvasStack(canvas);
+            try {
+                canvasStack.push();
+                float scale = (float) mc.getWindow().getGuiScale();
+                canvasStack.scale(scale, scale);
+                renderCallback.accept(canvasStack, customLayer);
+//                customLayer.render(canvasStack);
+//                EventManager.call(new RenderSkiaEvent(canvasStack));
+            } finally {
+                canvasStack.pop();
+            }
         } finally {
-            canvasStack.pop();
+            try {
+                endFrame();
+            } finally {
+                image = null;
+                if (frameSnapshot != null) {
+                    frameSnapshot.close();
+                }
+            }
         }
-        endFrame();
     }
 
     public static DirectContext getContext() {

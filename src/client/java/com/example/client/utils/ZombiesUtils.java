@@ -3,7 +3,10 @@ package com.example.client.utils;
 import com.example.client.data.ZombiesGuns;
 import net.minecraft.core.BlockPos;
 import net.minecraft.tags.BlockTags;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.monster.zombie.Zombie;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
@@ -22,8 +25,8 @@ public class ZombiesUtils implements IMinecraft {
         BlockState state =  mc.level.getBlockState(blockPos);
         Block block = state.getBlock();
 
-        if (state.isAir())
-            return ZombiesMap.THE_LAB;
+//        if (state.isAir())
+//            return ZombiesMap.THE_LAB;
         if (state.is(BlockTags.WOOL_CARPETS))
             return ZombiesMap.ALIEN_ARCADIUM;
         if (block == Blocks.STONE_BRICKS)
@@ -33,6 +36,14 @@ public class ZombiesUtils implements IMinecraft {
         if (isTerracotta(block))
             return ZombiesMap.PRISON;
         return ZombiesMap.NULL;
+    }
+    public static boolean isTheOldOne(Entity entity) {
+        if (!(entity instanceof Zombie zombie) || !zombie.isBaby()) {
+            return false;
+        }
+
+        return zombie.getMainHandItem().is(Items.DIAMOND_SWORD)
+                || zombie.getOffhandItem().is(Items.DIAMOND_SWORD);
     }
     private static boolean isTerracotta(Block block) {
         return block == Blocks.TERRACOTTA

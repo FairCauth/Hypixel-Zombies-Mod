@@ -3,6 +3,7 @@ package com.example.client.module.modules;
 import com.darkmagician6.eventapi.EventTarget;
 import com.example.client.data.ZombiesWaves;
 import com.example.client.events.SkiaEvent;
+import com.example.client.events.TickEvent;
 import com.example.client.language.Language;
 import com.example.client.language.Text;
 import com.example.client.module.AbstractModule;
@@ -18,6 +19,8 @@ import com.example.client.tracker.ServerTracker;
 import com.example.client.utils.PlayerUtils;
 import com.example.client.utils.ZombiesMap;
 import com.example.client.utils.ZombiesUtils;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+import net.minecraft.sounds.SoundEvents;
 
 import java.util.Locale;
 
@@ -50,6 +53,12 @@ public class WaveDisplay extends AbstractModule {
     public static final BooleanSetting onlyGame = new BooleanSetting(true);
 
     @SettingInfo(name = {
+            @Text(label = "Sound", language = Language.English),
+            @Text(label = "音效", language = Language.Chinese)
+    })
+    public static final BooleanSetting sound = new BooleanSetting(true);
+
+    @SettingInfo(name = {
             @Text(label = "X", language = Language.English),
             @Text(label = "X", language = Language.Chinese)
     })
@@ -61,8 +70,89 @@ public class WaveDisplay extends AbstractModule {
     })
     public static final NumberSetting posY = new NumberSetting(0.60, 0, 1, "#.00");
 
+    private int soundRound = Integer.MIN_VALUE;
+    private long soundRoundTime = Long.MIN_VALUE;
+    private int soundWave = Integer.MIN_VALUE;
+    private int lastCountdownSecond = -1;
+
     public WaveDisplay() {
-        registerSetting(onlyGame, posX, posY);
+        registerSetting(onlyGame, sound, posX, posY);
+    }
+
+    @EventTarget
+    public void onTick(TickEvent event) {
+        if (!sound.getValue()
+                || mc.player == null
+                || mc.level == null
+                || (onlyGame.getValue() && !PlayerUtils.isInHypZombies())) {
+            resetSoundState();
+            return;
+        }
+
+        int round = ServerTracker.currentRound;
+        ZombiesMap map = ZombiesUtils.getMap();
+        int[] waves = ZombiesWaves.getWaves(map, round);
+        if (round < 0 || map == null || map == ZombiesMap.NULL || waves == null || waves.length == 0) {
+            resetSoundState();
+            return;
+        }
+
+        double elapsed = Math.max(0D, (System.currentTimeMillis() - ServerTracker.roundTime) / 1000D);
+        int currentWave = ZombiesWaves.currentWaveIndex(waves, elapsed);
+
+        boolean roundNumberChanged = round != soundRound;
+        boolean newRound = roundNumberChanged || ServerTracker.roundTime != soundRoundTime;
+        if (newRound) {
+            if (soundRound != Integer.MIN_VALUE && roundNumberChanged && round > soundRound) {
+                playNextRoundSound();
+            }
+            soundRound = round;
+            soundRoundTime = ServerTracker.roundTime;
+            soundWave = currentWave;
+            lastCountdownSecond = -1;
+        } else if (currentWave != soundWave) {
+            if (currentWave > soundWave) {
+                playNextWaveSound();
+            }
+            soundWave = currentWave;
+            lastCountdownSecond = -1;
+        }
+
+        double toNext = ZombiesWaves.secondsToNextWave(waves, elapsed);
+        if (toNext > 0D && toNext <= 3D) {
+            int second = Math.clamp((int) Math.ceil(toNext), 1, 3);
+            if (second != lastCountdownSecond) {
+                playCountdownSound();
+                lastCountdownSecond = second;
+            }
+        } else if (toNext > 3D) {
+            lastCountdownSecond = -1;
+        }
+    }
+
+    private void playCountdownSound() {
+        mc.getSoundManager().play(SimpleSoundInstance.forUI(
+                SoundEvents.NOTE_BLOCK_PLING.value(), 1.0F, 2
+        ));
+    }
+
+    private void playNextWaveSound() {
+        mc.getSoundManager().play(SimpleSoundInstance.forUI(
+                SoundEvents.NOTE_BLOCK_PLING.value(), 2, 2
+        ));
+    }
+
+    private void playNextRoundSound() {
+        mc.getSoundManager().play(SimpleSoundInstance.forUI(
+                SoundEvents.NOTE_BLOCK_PLING.value(), 2, 2
+        ));
+    }
+
+    private void resetSoundState() {
+        soundRound = Integer.MIN_VALUE;
+        soundRoundTime = Long.MIN_VALUE;
+        soundWave = Integer.MIN_VALUE;
+        lastCountdownSecond = -1;
     }
 
     @EventTarget

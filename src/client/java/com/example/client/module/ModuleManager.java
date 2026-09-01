@@ -30,6 +30,9 @@ public class ModuleManager {
         add(new SkillShare());
         add(new LiquidGlassTest());
         add(new Hud());
+        add(new EasyRevive());
+        add(new TOOCheck());
+//        add(new Ban());
 //        new com.example.client.tracker.AmmoTracker(); // 弹药跟踪样本（自注册到 EventManager）
         EventManager.register(this);
     }

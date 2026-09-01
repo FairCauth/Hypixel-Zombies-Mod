@@ -3,9 +3,11 @@ package com.example.client.mixin.render;
 import com.example.client.ZombiesModClient;
 import com.example.client.module.AbstractModule;
 import com.example.client.module.modules.BadHeadshot;
+import com.example.client.module.modules.EasyRevive;
 import com.example.client.module.modules.ZombieChams;
 import com.example.client.utils.BadHeadshotOutlineState;
 import com.example.client.utils.ChamsState;
+import com.example.client.utils.EasyReviveBoundingBoxState;
 import com.example.client.utils.HideEntityState;
 import com.example.client.utils.PlayerUtils;
 import com.example.client.utils.render.ChamsRenderType;
@@ -22,6 +24,8 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.animal.golem.IronGolem;
 import net.minecraft.world.entity.animal.wolf.Wolf;
 import net.minecraft.world.entity.monster.Enemy;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.phys.AABB;
 import org.joml.Matrix4f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -41,6 +45,21 @@ public class LivingEntityRendererChamsMixin {
         }
         if (state instanceof BadHeadshotOutlineState badHeadshotState) {
             badHeadshotState.zombiesmod$setBadHeadshotBoxColor(BadHeadshot.boxColor(entity));
+        }
+        if (state instanceof EasyReviveBoundingBoxState boxState) {
+            boolean show = zombiesmod$shouldShowEasyReviveBox(entity);
+            AABB box = show && entity instanceof Player player
+                    ? EasyRevive.getExpandedBoundingBox(player)
+                    : entity.getBoundingBox();
+            boxState.zombiesmod$setEasyReviveBoundingBox(
+                    show,
+                    (float) (box.minX - entity.getX()),
+                    (float) (box.minY - entity.getY()),
+                    (float) (box.minZ - entity.getZ()),
+                    (float) (box.maxX - entity.getX()),
+                    (float) (box.maxY - entity.getY()),
+                    (float) (box.maxZ - entity.getZ())
+            );
         }
     }
 
@@ -75,6 +94,25 @@ public class LivingEntityRendererChamsMixin {
                     )
             );
         }
+
+        if (state instanceof EasyReviveBoundingBoxState boxState
+                && boxState.zombiesmod$showEasyReviveBoundingBox()) {
+            collector.submitCustomGeometry(
+                    poseStack,
+                    RenderTypes.lines(),
+                    (pose, consumer) -> zombiesmod$drawBox(
+                            pose.pose(),
+                            consumer,
+                            boxState.zombiesmod$getEasyReviveMinX(),
+                            boxState.zombiesmod$getEasyReviveMinY(),
+                            boxState.zombiesmod$getEasyReviveMinZ(),
+                            boxState.zombiesmod$getEasyReviveMaxX(),
+                            boxState.zombiesmod$getEasyReviveMaxY(),
+                            boxState.zombiesmod$getEasyReviveMaxZ(),
+                            0xFF55FF55
+                    )
+            );
+        }
     }
 
     @Inject(method = "submit", at = @At("RETURN"))
@@ -102,6 +140,14 @@ public class LivingEntityRendererChamsMixin {
         if (m == null || !m.isEnable()) return false;
         if (ZombieChams.onlyGame.getValue() && !PlayerUtils.isInHypZombies()) return false;
         return entity instanceof Enemy || entity instanceof Wolf || entity instanceof IronGolem;
+    }
+
+    @Unique
+    private static boolean zombiesmod$shouldShowEasyReviveBox(LivingEntity entity) {
+        if (!(entity instanceof Player player) || !EasyRevive.isDown(player)) return false;
+        if (ZombiesModClient.moduleManager == null || !EasyRevive.showBB.getValue()) return false;
+        AbstractModule module = ZombiesModClient.moduleManager.getModule("Easy Revive");
+        return module != null && module.isEnable();
     }
 
     @Unique

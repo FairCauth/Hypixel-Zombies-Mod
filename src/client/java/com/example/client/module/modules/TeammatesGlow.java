@@ -37,6 +37,9 @@ import java.util.concurrent.atomic.AtomicInteger;
         @Text(label = "队友高亮显示", language = Language.Chinese)
 }, enable = true)
 public class TeammatesGlow extends AbstractModule {
+    private static final long HP_TRAIL_HOLD_MS = 500L;
+    private static final float HP_TRAIL_RETURN_PER_SECOND = 0.65F;
+
     /**
      * Skia HUD 视觉调试；完成布局后改为 false。
      */
@@ -71,7 +74,9 @@ public class TeammatesGlow extends AbstractModule {
 
     private static final class HpAnim {
         float ghost;  // 残影值（掉血后缓慢回落到当前血量）
+        float lastTarget;
         long lastMs;
+        long holdUntil;
         boolean init;
     }
     private final AtomicInteger totalHeight = new AtomicInteger();
@@ -178,8 +183,23 @@ public class TeammatesGlow extends AbstractModule {
                     skiaFont.drawShadowString(canvasStack, hp, x + boxWidth - skiaFont.getWidth(hp) - 6, y + 3, hpColor, true);
 
                     //health bar
-                    RenderUtils.drawRect(canvasStack, x + 28, y + 16, boxWidth - 28 - 6, 3, 4, new Color(24, 24, 24, 180).getRGB());
-                    RenderUtils.drawRect(canvasStack, x + 28, y + 16, (boxWidth - 28 - 6) * percent, 3, 4, GuiGraphicsUtils.getHealthColor(percent));
+                    float healthBarX = x + 28F;
+                    float healthBarY = y + 16F;
+                    float healthBarWidth = boxWidth - 28F - 6F;
+                    float trailPercent = updateHpTrail(
+                            percent,
+                            HP_ANIMS.computeIfAbsent(ti.getName(), ignored -> new HpAnim())
+                    );
+                    RenderUtils.drawRect(canvasStack, healthBarX, healthBarY, healthBarWidth, 3F, 4F,
+                            new Color(24, 24, 24, 180).getRGB());
+                    float currentWidth = healthBarWidth * percent;
+                    float trailWidth = healthBarWidth * trailPercent;
+                    if (trailWidth - currentWidth > 0.25F) {
+                        RenderUtils.drawRect(canvasStack, healthBarX + currentWidth, healthBarY,
+                                trailWidth - currentWidth, 3F, 0F, 0xD9FFFFFF);
+                    }
+                    RenderUtils.drawRect(canvasStack, healthBarX, healthBarY, currentWidth, 3F, 4F,
+                            GuiGraphicsUtils.getHealthColor(percent));
 
                     //armor bar
                     int armor = player.getArmorValue();
@@ -223,6 +243,9 @@ public class TeammatesGlow extends AbstractModule {
 
                 y += height;
             }
+
+            // 队友离开面板后移除其动画状态，避免名字复用时沿用旧残影。
+            HP_ANIMS.keySet().retainAll(currentNames);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -436,26 +459,44 @@ public class TeammatesGlow extends AbstractModule {
      */
     private static void drawHpTrail(GuiGraphicsExtractor g, int x, int y, int w, int h,
                                     float target, HpAnim a) {
+        float ghost = updateHpTrail(target, a);
+
+        int curW = Math.round(w * Math.clamp(target, 0F, 1F));
+        int ghostW = Math.round(w * ghost);
+        if (ghostW > curW) {
+            g.fill(x + curW, y, x + ghostW, y + h, 0xCCFFFFFF);
+        }
+    }
+
+    private static float updateHpTrail(float target, HpAnim a) {
+        target = Math.clamp(target, 0F, 1F);
         long now = System.currentTimeMillis();
-        float dt = a.init ? Math.min(0.1f, (now - a.lastMs) / 1000f) : 0f; // 限制 dt，防卡顿大跳
+        float dt = a.init ? Math.min(0.1F, (now - a.lastMs) / 1000F) : 0F;
         a.lastMs = now;
         if (!a.init) {
             a.ghost = target;
+            a.lastTarget = target;
+            a.holdUntil = now;
             a.init = true;
+            return target;
         }
 
-        if (target < a.ghost) {
-            a.ghost -= dt * 0.9f;                 // 掉血：拖尾每秒回落 0.9
-            if (a.ghost < target) a.ghost = target;
-        } else {
-            a.ghost = target;                     // 回血：直接跟上
+        if (target < a.lastTarget) {
+            a.ghost = Math.max(a.ghost, a.lastTarget);
+            a.holdUntil = now + HP_TRAIL_HOLD_MS;
+        } else if (target > a.lastTarget) {
+            // 回血时不显示反向残影。
+            a.ghost = target;
+            a.holdUntil = now;
         }
 
-        int curW = Math.round(w * Math.max(0f, Math.min(1f, target)));
-        int ghostW = Math.round(w * Math.max(0f, Math.min(1f, a.ghost)));
-        if (ghostW > curW) {
-            g.fill(x + curW, y, x + ghostW, y + h, 0xCCFFFFFF); // 刚掉的血：白色拖尾（半透明叠在第一层空区上）
+        if (now > a.holdUntil) {
+            a.ghost = Math.max(target, a.ghost - HP_TRAIL_RETURN_PER_SECOND * dt);
         }
+
+        a.ghost = Math.max(target, Math.clamp(a.ghost, 0F, 1F));
+        a.lastTarget = target;
+        return a.ghost;
     }
 
     private static String formatGold(long gold) {

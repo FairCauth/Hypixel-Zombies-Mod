@@ -9,6 +9,8 @@ import io.github.humbleui.types.Rect;
 
 public class RenderUtils {
     private static final Paint paint = new Paint();
+    private static final Paint blurPant = new Paint();
+    private static final Paint shadowPant = new Paint();
 
     public static void drawAngularHudBackground(
             CanvasStack stack,
@@ -350,13 +352,13 @@ public class RenderUtils {
 
         blurRadius = Math.max(0F, blurRadius);
         radius = Math.max(0F, radius);
-
-        paint.reset();
-        paint.setMode(PaintMode.FILL);
-        paint.setColor(color);
-        paint.setAntiAlias(true);
+        stack.push();
+        shadowPant.reset();
+        shadowPant.setMode(PaintMode.FILL);
+        shadowPant.setColor(color);
+        shadowPant.setAntiAlias(true);
         if (blurRadius > 0F) {
-            paint.setMaskFilter(FilterCache.getMaskBlur(blurRadius));
+            shadowPant.setMaskFilter(FilterCache.getMaskBlur(blurRadius));
         }
 
         float shadowX = x + offsetX;
@@ -364,13 +366,14 @@ public class RenderUtils {
         if (radius > 0F) {
             stack.canvas().drawRRect(
                     RRect.makeXYWH(shadowX, shadowY, width, height, radius),
-                    paint
+                    shadowPant
             );
         } else {
-            stack.canvas().drawRect(Rect.makeXYWH(shadowX, shadowY, width, height), paint);
+            stack.canvas().drawRect(Rect.makeXYWH(shadowX, shadowY, width, height), shadowPant);
         }
 
-        paint.setMaskFilter(null);
+        shadowPant.setMaskFilter(null);
+        stack.pop();
     }
 
     public static void drawImage(CanvasStack stack,Image image, float x, float y, float width, float height, float radius) {
@@ -398,32 +401,32 @@ public class RenderUtils {
 
     public static void drawBlur(CanvasStack stack, float x, float y, float width, float height, float radius, float blurRadius) {
         if (width <= 0 || height <= 0) return;
-        paint.reset();
+        blurPant.reset();
         try (ImageFilter blur = ImageFilter.makeBlur(blurRadius, blurRadius, FilterTileMode.CLAMP)) {
-            paint.setAlpha(255);
-            paint.setImageFilter(blur);
+            blurPant.setAlpha(255);
+            blurPant.setImageFilter(blur);
 
             stack.push();
 
             if (radius > 0) {
-                paint.setAntiAlias(true);
+                blurPant.setAntiAlias(true);
                 stack.canvas().clipRRect(RRect.makeXYWH(x, y, width, height, radius), true);
             } else {
-                paint.setAntiAlias(false);
+                blurPant.setAntiAlias(false);
                 stack.canvas().clipRect(Rect.makeXYWH(x, y, width, height), ClipMode.INTERSECT, false);
             }
 
             stack.canvas().resetMatrix();
             Image image = Skia.getGameImage();
             if (image != null) {
-                stack.canvas().drawImage(image, 0, 0, paint);
+                stack.canvas().drawImage(image, 0, 0, blurPant);
             }else{
                 System.out.println("image NULL");
             }
 
             stack.pop();
         } finally {
-            paint.setImageFilter(null);
+            blurPant.setImageFilter(null);
         }
     }
 

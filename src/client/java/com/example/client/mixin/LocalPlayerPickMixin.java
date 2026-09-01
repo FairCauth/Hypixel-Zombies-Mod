@@ -1,17 +1,34 @@
 package com.example.client.mixin;
 
 import com.example.client.module.modules.HologramFix;
+import com.example.client.module.modules.EasyRevive;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.decoration.ArmorStand;
+import net.minecraft.world.phys.HitResult;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.function.Predicate;
 
 @Mixin(LocalPlayer.class)
 public class LocalPlayerPickMixin {
+
+    @Inject(
+            method = "pick(Lnet/minecraft/world/entity/Entity;DDF)Lnet/minecraft/world/phys/HitResult;",
+            at = @At("HEAD")
+    )
+    private static void zombiesmod$applyEasyReviveBoundingBoxes(Entity cameraEntity,
+                                                                 double blockInteractionRange,
+                                                                 double entityInteractionRange,
+                                                                 float partialTick,
+                                                                 CallbackInfoReturnable<HitResult> cir) {
+        // 玩家姿势更新可能在准心选取前恢复原始碰撞箱，因此在 raycast 前重新应用。
+        EasyRevive.applyExpandedBoundingBoxes();
+    }
 
     @ModifyArg(
             method = "pick(Lnet/minecraft/world/entity/Entity;DDF)Lnet/minecraft/world/phys/HitResult;",

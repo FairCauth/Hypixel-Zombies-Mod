@@ -4,6 +4,7 @@ import com.darkmagician6.eventapi.EventManager;
 import com.example.client.language.Language;
 import com.example.client.language.Text;
 import com.example.client.module.annotation.ModuleInfo;
+import com.example.client.notification.NotificationManager;
 import com.example.client.setting.Setting;
 import com.example.client.setting.SettingManager;
 import com.example.client.utils.ChatUtils;
@@ -55,6 +56,10 @@ public class AbstractModule extends SettingManager implements IMinecraft {
             EventManager.register(this);
             if(mc.player != null)
             {
+
+//                NotificationManager.info("Module", "这是一条普通通知");
+
+                NotificationManager.info("Module", ChatFormatting.AQUA + getName() +ChatFormatting.GRAY+ " was " + ChatFormatting.GREEN +"Enabled");
                 ChatUtils.print(ChatFormatting.AQUA + getName() +ChatFormatting.GRAY+ " was " + ChatFormatting.GREEN +"Enabled");
 //                ToastUtils.show("Module", ChatFormatting.AQUA + getName() +ChatFormatting.GRAY+ " was " + ChatFormatting.GREEN +"Enabled");
             }
@@ -63,6 +68,8 @@ public class AbstractModule extends SettingManager implements IMinecraft {
             EventManager.unregister(this);
             if(mc.player != null)
             {
+//                NotificationManager.warning("警告", "队友生命值过低");
+                NotificationManager.info("Module", ChatFormatting.AQUA + getName() +ChatFormatting.GRAY+ " was " + ChatFormatting.RED +"Disabled");
                 ChatUtils.print(ChatFormatting.AQUA + getName() +ChatFormatting.GRAY+ " was " + ChatFormatting.RED +"Disabled");
 //                ToastUtils.show("Module", ChatFormatting.AQUA + getName() +ChatFormatting.GRAY+ " was " + ChatFormatting.RED +"Disabled");
             }

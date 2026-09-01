@@ -151,6 +151,7 @@ public class PlayerUtils implements IMinecraft {
     }
     public static boolean isInHypZombies() {
         if (mc.player == null) return false;
+        if(ZombiesUtils.getMap() == ZombiesMap.NULL) return false;
         MobEffectInstance effect = mc.player.getEffect(MobEffects.MINING_FATIGUE);
         MobEffectInstance effect2 = mc.player.getEffect(MobEffects.INVISIBILITY);
         if (effect == null)

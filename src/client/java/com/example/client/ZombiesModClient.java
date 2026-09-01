@@ -13,6 +13,7 @@ import com.example.client.events.SkiaEvent;
 import com.example.client.gui.ZombiesConfigScreen;
 import com.example.client.module.AbstractModule;
 import com.example.client.module.ModuleManager;
+import com.example.client.notification.NotificationRenderer;
 import com.example.client.skia.CanvasStack;
 import com.example.client.skia.Skia;
 import com.example.client.skia.fbo.GameFramebuffer;
@@ -40,6 +41,7 @@ public class ZombiesModClient implements ClientModInitializer, IMinecraft {
 
 		ZombiesConfig.load();
 		EventManager.register(this);
+		EventManager.register(new NotificationRenderer());
 		System.out.println("SKIA INIT1111111111111!!!!!");
 
 		Skia.queueAndInit(
