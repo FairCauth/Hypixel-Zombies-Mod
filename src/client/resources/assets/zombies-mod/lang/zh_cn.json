@@ -121,6 +121,7 @@
   "zombies-mod.module.lightning_rod_queue": "LRod 队列",
   "zombies-mod.setting.x": "X",
   "zombies-mod.setting.y": "Y",
+  "zombies-mod.setting.scale": "大小",
   "zombies-mod.module.liquid_glass_test": "液态玻璃测试",
   "zombies-mod.module.name_protect": "名字保护",
   "zombies-mod.module.no_fire_effect": "无火焰特效",

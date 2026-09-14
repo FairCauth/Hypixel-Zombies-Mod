@@ -12,6 +12,7 @@ public class PositionEditorScreen extends Screen {
     private final Screen parent;
     private final NumberSetting posX;
     private final NumberSetting posY;
+    private final NumberSetting scale;
     private final boolean centerX;
     private boolean dragging;
     private double dragOffsetX;
@@ -32,10 +33,16 @@ public class PositionEditorScreen extends Screen {
 
     public PositionEditorScreen(Screen parent, NumberSetting posX, NumberSetting posY,
                                 boolean centerX, int previewWidth, int previewHeight) {
+        this(parent, posX, posY, null, centerX, previewWidth, previewHeight);
+    }
+
+    public PositionEditorScreen(Screen parent, NumberSetting posX, NumberSetting posY,
+                                NumberSetting scale, boolean centerX, int previewWidth, int previewHeight) {
         super(Component.translatable("zombies-mod.gui.position_editor"));
         this.parent = parent;
         this.posX = posX;
         this.posY = posY;
+        this.scale = scale;
         this.centerX = centerX;
         this.previewWidth = previewWidth;
         this.previewHeight = previewHeight;
@@ -48,11 +55,13 @@ public class PositionEditorScreen extends Screen {
 
         int x = previewX();
         int y = previewY();
-        graphics.fill(x, y, x + previewWidth, y + previewHeight, 0xDD26384A);
-        graphics.fill(x, y, x + previewWidth, y + 1, 0xFF66CCFF);
-        graphics.fill(x, y + previewHeight - 1, x + previewWidth, y + previewHeight, 0xFF66CCFF);
-        graphics.fill(x, y, x + 1, y + previewHeight, 0xFF66CCFF);
-        graphics.fill(x + previewWidth - 1, y, x + previewWidth, y + previewHeight, 0xFF66CCFF);
+        int width = scaledPreviewWidth();
+        int height = scaledPreviewHeight();
+        graphics.fill(x, y, x + width, y + height, 0xDD26384A);
+        graphics.fill(x, y, x + width, y + 1, 0xFF66CCFF);
+        graphics.fill(x, y + height - 1, x + width, y + height, 0xFF66CCFF);
+        graphics.fill(x, y, x + 1, y + height, 0xFF66CCFF);
+        graphics.fill(x + width - 1, y, x + width, y + height, 0xFF66CCFF);
 
         Component coordinates = Component.literal(String.format("X: %.2f  Y: %.2f",
                 posX.getValue().doubleValue(), posY.getValue().doubleValue()));
@@ -101,16 +110,28 @@ public class PositionEditorScreen extends Screen {
 
     private int previewX() {
         return (int) Math.round(this.width * posX.getValue().doubleValue())
-            - (centerX ? previewWidth / 2 : 0);
+            - (centerX ? scaledPreviewWidth() / 2 : 0);
     }
 
     private int previewY() {
         return (int) Math.round(this.height * posY.getValue().doubleValue());
     }
 
+    private int scaledPreviewWidth() {
+        return Math.max(1, (int) Math.round(previewWidth * previewScale()));
+    }
+
+    private int scaledPreviewHeight() {
+        return Math.max(1, (int) Math.round(previewHeight * previewScale()));
+    }
+
+    private double previewScale() {
+        return scale == null ? 1.0D : scale.getValue().doubleValue();
+    }
+
     private boolean isInsidePreview(double mouseX, double mouseY) {
-        return mouseX >= previewX() && mouseX <= previewX() + previewWidth
-            && mouseY >= previewY() && mouseY <= previewY() + previewHeight;
+        return mouseX >= previewX() && mouseX <= previewX() + scaledPreviewWidth()
+            && mouseY >= previewY() && mouseY <= previewY() + scaledPreviewHeight();
     }
 
     private void updatePosition(double mouseX, double mouseY) {
@@ -119,10 +140,10 @@ public class PositionEditorScreen extends Screen {
         double width = Math.max(1, this.width);
         double height = Math.max(1, this.height);
 
-        double x = (left + (centerX ? previewWidth / 2.0D : 0.0D)) / width;
+        double x = (left + (centerX ? scaledPreviewWidth() / 2.0D : 0.0D)) / width;
         double y = top / height;
 
-        double minX = centerX ? (previewWidth / 2.0D) / width : 0.0D;
+        double minX = centerX ? (scaledPreviewWidth() / 2.0D) / width : 0.0D;
         double maxX = 1.0D;
         double maxY = 1.0D;
 

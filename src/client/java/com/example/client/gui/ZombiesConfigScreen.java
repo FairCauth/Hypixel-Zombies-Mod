@@ -4,6 +4,7 @@ import com.example.client.config.ZombiesConfig;
 import com.example.client.ZombiesModClient;
 import com.example.client.language.GuiText;
 import com.example.client.module.AbstractModule;
+import com.example.client.module.modules.TeammatesGlow;
 import com.example.client.setting.Setting;
 import com.example.client.setting.SettingManager;
 import com.example.client.setting.settings.BooleanSetting;
@@ -201,13 +202,23 @@ public class ZombiesConfigScreen extends Screen {
                             } else if ("setting.y".equals(setting.getNameKey()) && positionX != null) {
                             NumberSetting positionXSetting = positionX;
                             NumberSetting positionY = numberSetting;
+                            NumberSetting scale = null;
+                            for (Setting<?> candidate : selected.getSettings()) {
+                                if (candidate instanceof NumberSetting number
+                                        && "setting.scale".equals(number.getNameKey())) {
+                                    scale = number;
+                                    break;
+                                }
+                            }
+                            NumberSetting hudScale = scale;
                             boolean centerX = "module.lightning_rod_queue".equals(selected.getNameKey());
-                            int previewWidth = positionPreviewSize(selected.getNameKey())[0];
-                            int previewHeight = positionPreviewSize(selected.getNameKey())[1];
+                            int[] previewSize = positionPreviewSize(selected.getNameKey());
+                            int previewWidth = previewSize[0];
+                            int previewHeight = previewSize[1];
                             settingsPanel.addScrollWidget(Button.builder(
                                 GuiText.text("gui.change_position"),
                                 button -> Minecraft.getInstance().gui.setScreen(
-                                    new PositionEditorScreen(this, positionXSetting, positionY, centerX,
+                                    new PositionEditorScreen(this, positionXSetting, positionY, hudScale, centerX,
                                             previewWidth, previewHeight)))
                                 .bounds(0, 0, sw, 20).build(), 12, y);
                             y += ITEM_H;
@@ -245,7 +256,7 @@ public class ZombiesConfigScreen extends Screen {
             case "module.target_hud" -> new int[]{190, 58};
             case "module.lightning_rod_queue" -> new int[]{113, 34};
             case "module.powerup_predictor" -> new int[]{250, 58};
-            case "module.teammates_glow" -> new int[]{260, 140};
+            case "module.teammates_glow" -> new int[]{TeammatesGlow.getHudWidth(), TeammatesGlow.getHudHeight()};
             case "module.wave_display" -> new int[]{260, 190};
             default -> new int[]{180, 42};
         };

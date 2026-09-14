@@ -120,6 +120,7 @@
   "zombies-mod.module.lightning_rod_queue": "Lightning Rod Queue",
   "zombies-mod.setting.x": "X",
   "zombies-mod.setting.y": "Y",
+  "zombies-mod.setting.scale": "Size",
   "zombies-mod.module.liquid_glass_test": "Liquid Glass Test",
   "zombies-mod.module.name_protect": "Name Protect",
   "zombies-mod.module.no_fire_effect": "No Fire Effect",
