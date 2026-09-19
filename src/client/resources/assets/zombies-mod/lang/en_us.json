@@ -99,6 +99,7 @@
   "zombies-mod.setting.auto_reload_durability_1": "Auto Reload (Durability 1)",
   "zombies-mod.module.bad_headshot": "Bad Headshot",
   "zombies-mod.setting.only_in_zombies": "Only In Zombies",
+  "zombies-mod.setting.invisible_entities": "Invisible Display",
   "zombies-mod.setting.send_to_chat": "Send To Chat",
   "zombies-mod.setting.distance": "Distance",
   "zombies-mod.setting.target_color": "Target Color",

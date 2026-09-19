@@ -99,6 +99,7 @@
   "zombies-mod.setting.auto_reload_durability_1": "耐久1自动换弹",
   "zombies-mod.module.bad_headshot": "无法暴击提示",
   "zombies-mod.setting.only_in_zombies": "仅在僵尸末日里",
+  "zombies-mod.setting.invisible_entities": "隐身显示",
   "zombies-mod.setting.send_to_chat": "发送到聊天",
   "zombies-mod.setting.interval": "间隔",
   "zombies-mod.setting.distance": "距离",
