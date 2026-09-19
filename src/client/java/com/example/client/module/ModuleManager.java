@@ -22,6 +22,7 @@ public class ModuleManager {
         add(new WaveDisplay());
         add(new LightningRodQueue());
         add(new ReviveAura());
+        add(new OldOneDetector());
         add(new PowerupPredictor());
         add(new StatsQuery());
         add(new NameProtect());
