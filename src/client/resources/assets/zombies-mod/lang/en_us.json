@@ -112,6 +112,7 @@
   "zombies-mod.setting.debug": "Debug",
   "zombies-mod.module.hide_blocking_player": "Hide Blocking Player",
   "zombies-mod.setting.hide_overlap_expand": "Hide Overlap Expand",
+  "zombies-mod.setting.fade_range": "Transparency Range",
   "zombies-mod.setting.fade_player_alpha": "Fade Player Alpha",
   "zombies-mod.setting.full_hide": "Full Hide",
   "zombies-mod.module.hide_zombies": "Hide Zombies",

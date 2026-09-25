@@ -30,7 +30,7 @@ public class HidePlayerHelper implements IMinecraft {
             return false;
         }
 
-        return overlapsSelf(target, HideBlockingPlayer.fadeOverlapExpand.getValue().doubleValue());
+        return withinFadeRange(target, HideBlockingPlayer.fadeRange.getValue().doubleValue());
     }
 
     public static boolean shouldFade(Zombie target) {
@@ -39,7 +39,7 @@ public class HidePlayerHelper implements IMinecraft {
             return false;
         }
 
-        return overlapsSelf(target, HideZombies.fadeOverlapExpand.getValue().doubleValue());
+        return withinFadeRange(target, HideZombies.fadeRange.getValue().doubleValue());
     }
 
     public static boolean shouldFade(LivingEntity target) {
@@ -76,6 +76,25 @@ public class HidePlayerHelper implements IMinecraft {
         return false;
     }
 
+    public static int fadeAlpha(LivingEntity target) {
+        double range;
+        int minimumAlpha;
+        if (target instanceof Player) {
+            range = HideBlockingPlayer.fadeRange.getValue().doubleValue();
+            minimumAlpha = HideBlockingPlayer.fullHide.getValue() ? 0 : 50;
+        } else if (target instanceof Zombie) {
+            range = HideZombies.fadeRange.getValue().doubleValue();
+            minimumAlpha = HideZombies.fullHide.getValue() ? 0 : 50;
+        } else {
+            return 255;
+        }
+
+        double distance = horizontalDistance(target);
+        if (range <= 1.0) return distance <= 1.0 ? minimumAlpha : 255;
+        double progress = Math.max(0.0, Math.min(1.0, (distance - 1.0) / (range - 1.0)));
+        return (int) Math.round(minimumAlpha + (255 - minimumAlpha) * progress);
+    }
+
     private static boolean overlapsSelf(LivingEntity target, double expand) {
         LocalPlayer self = mc.player;
 
@@ -87,6 +106,18 @@ public class HidePlayerHelper implements IMinecraft {
         AABB targetBox = target.getBoundingBox();
 
         return selfBox.intersects(targetBox);
+    }
+
+    private static boolean withinFadeRange(LivingEntity target, double range) {
+        return horizontalDistance(target) <= range;
+    }
+
+    private static double horizontalDistance(LivingEntity target) {
+        LocalPlayer self = mc.player;
+        if (self == null || mc.level == null || target == self || target.isInvisible()) return Double.POSITIVE_INFINITY;
+        double dx = self.getX() - target.getX();
+        double dz = self.getZ() - target.getZ();
+        return Math.sqrt(dx * dx + dz * dz);
     }
 
     public static int alphaWhite(int alpha) {

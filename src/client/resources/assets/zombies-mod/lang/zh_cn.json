@@ -113,6 +113,7 @@
   "zombies-mod.setting.debug": "调试",
   "zombies-mod.module.hide_blocking_player": "隐藏阻挡玩家",
   "zombies-mod.setting.hide_overlap_expand": "隐藏重叠扩展",
+  "zombies-mod.setting.fade_range": "透明范围",
   "zombies-mod.setting.fade_player_alpha": "Fade Player Alpha",
   "zombies-mod.setting.full_hide": "完全隐藏",
   "zombies-mod.module.hide_zombies": "隐藏阻挡僵尸",
