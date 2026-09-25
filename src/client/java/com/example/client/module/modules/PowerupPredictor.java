@@ -12,6 +12,7 @@ import com.example.client.setting.settings.NumberSetting;
 import com.example.client.skia.CanvasStack;
 import com.example.client.skia.font.SkiaFont;
 import com.example.client.skia.font.SkiaFonts;
+import com.example.client.skia.render.LiquidGlassUi;
 import com.example.client.skia.render.RenderUtils;
 import com.example.client.tracker.ServerTracker;
 import com.example.client.utils.PlayerUtils;
@@ -25,17 +26,14 @@ import java.util.List;
 }, enable = true)
 public class PowerupPredictor extends AbstractModule {
     private static final float PANEL_WIDTH = 176F;
-    private static final float PANEL_HEIGHT = 53F;
-    private static final float PANEL_RADIUS = 6F;
+    private static final float PANEL_HEIGHT = 61F;
+    private static final float PANEL_RADIUS = 13F;
     private static final float PADDING = 7F;
-    private static final float ROW_HEIGHT = 11F;
-    private static final float ROW_GAP = 1.5F;
+    private static final float ROW_HEIGHT = 12F;
+    private static final float ROW_GAP = 2F;
 
-    private static final int PANEL_COLOR = 0xA8181D23;
-    private static final int PANEL_HIGHLIGHT = 0x60343C46;
-    private static final int ROW_COLOR = 0x7A20262D;
     private static final int TEXT_COLOR = 0xFFF1F5F8;
-    private static final int MUTED_TEXT_COLOR = 0xFF909DA9;
+    private static final int MUTED_TEXT_COLOR = 0xFFB8C3CC;
 
 
     @SettingInfo(name = {@Text(label = "X", language = Language.English)})
@@ -84,35 +82,32 @@ public class PowerupPredictor extends AbstractModule {
             int currentRound,
             int showCount
     ) {
-        SkiaFont titleFont = SkiaFonts.getBoldFont(6);
+        SkiaFont titleFont = SkiaFonts.getBoldFont(7);
         SkiaFont rowFont = SkiaFonts.getDefaultFont(5);
         int lockedCount = 0;
         for (Type type : Type.values()) {
             if (predictor.isLocked(type)) lockedCount++;
         }
 
-        RenderUtils.drawShadow(
-                canvasStack, x, y, PANEL_WIDTH, PANEL_HEIGHT, PANEL_RADIUS,
-                0x60000000, 6F, 0F, 2F
-        );
-        RenderUtils.drawBlur(canvasStack, x, y, PANEL_WIDTH, PANEL_HEIGHT, PANEL_RADIUS, 10F);
-        RenderUtils.drawRect(canvasStack, x, y, PANEL_WIDTH, PANEL_HEIGHT, PANEL_RADIUS, PANEL_COLOR);
-        RenderUtils.drawRect(canvasStack, x + 1F, y + 1F, PANEL_WIDTH - 2F, 1F, 1F, PANEL_HIGHLIGHT);
-
-        RenderUtils.drawRect(canvasStack, x + PADDING, y + 5F, 2F, 7F, 1F, 0xFFB65CFF);
-        titleFont.drawShadowString(canvasStack, "POWERUP FORECAST", x + 12F, y + 3.5F, TEXT_COLOR, true);
+        int summaryColor = lockedCount == Type.values().length ? 0xFF72F5A5 : 0xFFC38BFF;
+        LiquidGlassUi.drawPanel(canvasStack, x, y, PANEL_WIDTH, PANEL_HEIGHT, PANEL_RADIUS);
+        LiquidGlassUi.drawStatusLight(canvasStack, x + PADDING, y + 5F, 3F, 7F, 0xFFC38BFF);
+        titleFont.drawString(canvasStack, "POWERUP FORECAST", x + PADDING + 7F, y + 3.8F, TEXT_COLOR);
 
         String lockText = lockedCount + "/" + Type.values().length + " LOCKED";
-        rowFont.drawShadowString(
+        float pillWidth = rowFont.getWidth(lockText) + 12F;
+        float pillX = x + PANEL_WIDTH - PADDING - pillWidth;
+        LiquidGlassUi.drawPill(canvasStack, pillX, y + 3F, pillWidth, 10F, summaryColor);
+        LiquidGlassUi.drawStatusLight(canvasStack, pillX + 3.5F, y + 6.5F, 3F, 3F, summaryColor);
+        rowFont.drawString(
                 canvasStack,
                 lockText,
-                x + PANEL_WIDTH - PADDING - rowFont.getWidth(lockText),
+                pillX + 8F,
                 y + 5F,
-                lockedCount == Type.values().length ? 0xFF64FF91 : MUTED_TEXT_COLOR,
-                true
+                summaryColor
         );
 
-        float rowY = y + 15F;
+        float rowY = y + 17F;
         for (Type type : Type.values()) {
             drawPowerupRow(canvasStack, rowFont, x + PADDING, rowY, type, predictor, currentRound, showCount);
             rowY += ROW_HEIGHT + ROW_GAP;
@@ -133,27 +128,37 @@ public class PowerupPredictor extends AbstractModule {
         int typeColor = color(type);
         boolean locked = predictor.isLocked(type);
 
-        RenderUtils.drawRect(canvasStack, x, y, rowWidth, ROW_HEIGHT, 3F, ROW_COLOR);
-        RenderUtils.drawRect(canvasStack, x, y, 2F, ROW_HEIGHT, 1F, withAlpha(typeColor, locked ? 0xFF : 0x60));
-        font.drawShadowString(
+        LiquidGlassUi.drawSurface(
+                canvasStack,
+                x, y, rowWidth, ROW_HEIGHT, 5.5F,
+                typeColor,
+                locked ? 0x14 : 0x07,
+                locked ? 0x5C : 0x28
+        );
+        LiquidGlassUi.drawStatusLight(
+                canvasStack,
+                x + 4F, y + 4.5F,
+                2.5F, 2.5F,
+                locked ? typeColor : withAlpha(typeColor, 0x80)
+        );
+        font.drawString(
                 canvasStack,
                 label(type),
-                x + 5F,
-                y + 2F,
-                locked ? typeColor : MUTED_TEXT_COLOR,
-                true
+                x + 9F,
+                y + 2.5F,
+                locked ? typeColor : MUTED_TEXT_COLOR
         );
 
-        float timelineX = x + 39F;
-        float timelineWidth = rowWidth - 43F;
-        float timelineY = y + 8.5F;
-        RenderUtils.drawRect(canvasStack, timelineX, timelineY, timelineWidth, 0.75F, 0F, 0x504B5661);
+        float timelineX = x + 43F;
+        float timelineWidth = rowWidth - 47F;
+        float timelineY = y + 9F;
+        RenderUtils.drawRect(canvasStack, timelineX, timelineY, timelineWidth, 0.75F, 0.375F, 0x52FFFFFF);
 
         if (!locked) {
-            font.drawShadowString(canvasStack, "SCANNING", timelineX, y + 2F, MUTED_TEXT_COLOR, true);
+            font.drawString(canvasStack, "SCANNING", timelineX, y + 2.5F, MUTED_TEXT_COLOR);
             for (int i = 0; i < 4; i++) {
                 float dotX = timelineX + timelineWidth - 20F + i * 6F;
-                RenderUtils.drawRect(canvasStack, dotX, timelineY - 1F, 2.5F, 2.5F, 1.25F, 0x805D6974);
+                RenderUtils.drawRect(canvasStack, dotX, timelineY - 1F, 2.5F, 2.5F, 1.25F, 0x705D6974);
             }
             return;
         }
@@ -181,13 +186,12 @@ public class PowerupPredictor extends AbstractModule {
                     now ? 1.8F : 1.2F,
                     now ? 0xFFFFC857 : typeColor
             );
-            font.drawShadowString(
+            font.drawString(
                     canvasStack,
                     entry,
                     labelX,
-                    y + 1F,
-                    now ? 0xFFFFD56A : TEXT_COLOR,
-                    true
+                    y + 2F,
+                    now ? 0xFFFFD56A : TEXT_COLOR
             );
         }
     }

@@ -72,6 +72,10 @@ public class GLState {
         GL11.glStencilMask(0xFF);
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
 //        GL15.glBindBuffer(GL15.GL_ELEMENT_ARRAY_BUFFER, 0);
-        GL11.glBindTexture(GL11.GL_TEXTURE_2D, 0);
+        // Keep GlStateManager's texture cache in sync with the actual OpenGL
+        // binding. A raw glBindTexture(0) leaves Minecraft believing that its
+        // font atlas is still bound, which makes later GUI text use a Skia
+        // texture and produces the blue/rainbow discoloration.
+        GlStateManager._bindTexture(0);
     }
 }

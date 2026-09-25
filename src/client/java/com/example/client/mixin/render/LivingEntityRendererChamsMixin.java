@@ -3,6 +3,7 @@ package com.example.client.mixin.render;
 import com.example.client.ZombiesModClient;
 import com.example.client.module.AbstractModule;
 import com.example.client.module.modules.BadHeadshot;
+import com.example.client.module.modules.EasyAmmo;
 import com.example.client.module.modules.EasyRevive;
 import com.example.client.module.modules.ZombieChams;
 import com.example.client.utils.BadHeadshotOutlineState;
@@ -47,8 +48,9 @@ public class LivingEntityRendererChamsMixin {
             badHeadshotState.zombiesmod$setBadHeadshotBoxColor(BadHeadshot.boxColor(entity));
         }
         if (state instanceof EasyReviveBoundingBoxState boxState) {
-            boolean show = zombiesmod$shouldShowEasyReviveBox(entity);
-            AABB box = show && entity instanceof Player player
+            boolean showReviveBox = zombiesmod$shouldShowEasyReviveBox(entity);
+            boolean show = showReviveBox || EasyAmmo.shouldShowAABB(entity);
+            AABB box = showReviveBox && entity instanceof Player player
                     ? EasyRevive.getExpandedBoundingBox(player)
                     : entity.getBoundingBox();
             boxState.zombiesmod$setEasyReviveBoundingBox(

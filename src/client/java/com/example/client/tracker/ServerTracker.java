@@ -59,7 +59,7 @@ public class ServerTracker implements IMinecraft {
     private boolean probableInstaKill = false;
     @EventTarget
     public void onSoundTrack(SoundPacketEvent event) {
-        if(!PlayerUtils.isInHypZombies()) return;
+        if(ZombiesUtils.getMap() == ZombiesMap.NULL) return;
         ClientboundSoundPacket packet = event.getPacket();
         String soundName = getSoundName(packet);
         //minecraft:entity.wither.spawn round start

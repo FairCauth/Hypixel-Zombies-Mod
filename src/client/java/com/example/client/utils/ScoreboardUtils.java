@@ -8,6 +8,7 @@ import net.minecraft.world.scores.*;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -66,7 +67,7 @@ public class ScoreboardUtils implements IMinecraft {
                     gold = Long.parseLong(right);
                 } else {
                     statusText = right;
-                    state = hasTerminalRedColor(component)
+                    state = isTerminalStatusText(right) || hasTerminalRedColor(component)
                             ? TeammateInfo.PlayerState.TERMINAL
                             : TeammateInfo.PlayerState.DOWN;
                 }
@@ -75,6 +76,19 @@ public class ScoreboardUtils implements IMinecraft {
             if (!name.isEmpty()) out.add(new ScorePlayer(name, gold, state, statusText));
         }
         return out;
+    }
+
+    /**
+     * QUIT/DEAD 是服务端发送的稳定状态值，优先按文字判断；颜色只作为其他语言或
+     * 服务器样式下的兜底。只检查冒号右侧，避免玩家名或前缀中的单词造成误判。
+     */
+    private static boolean isTerminalStatusText(String statusText) {
+        String normalized = statusText == null
+                ? ""
+                : statusText.trim().toUpperCase(Locale.ROOT);
+        return normalized.equals("QUIT")
+                || normalized.equals("DEAD")
+                || normalized.matches(".*\\b(?:QUIT|DEAD)\\b.*");
     }
 
     /**

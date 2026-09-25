@@ -16,8 +16,11 @@ import com.example.client.setting.settings.BooleanSetting;
 import com.example.client.setting.settings.ButtonSetting;
 import com.example.client.setting.settings.ModeSetting;
 import com.example.client.setting.settings.NumberSetting;
+import com.example.client.tracker.ServerTracker;
+import com.example.client.utils.PlayerUtils;
 import com.example.client.utils.TimeUtils;
 import net.minecraft.client.KeyMapping;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.ChestBlock;
@@ -68,8 +71,22 @@ public class AutoSwitchWeapon extends AbstractModule {
     })
     public static final BooleanSetting autoReload = new BooleanSetting(false);
 
+    @SettingInfo(name = {
+            @Text(label = "Shotgun Distance", language = Language.English),
+            @Text(label = "霰弹枪距离", language = Language.Chinese)
+    })
+    public static final NumberSetting shotgunDistance = new NumberSetting(8.0D, 1.0D, 20.0D, "#.0");
+
+    @SettingInfo(name = {
+            @Text(label = "Distance Check", language = Language.English),
+            @Text(label = "距离检测", language = Language.Chinese)
+    })
+    public static final BooleanSetting distanceCheck = new BooleanSetting(true,
+            new SettingAttribute<>(shotgunDistance, true)
+    );
+
     public AutoSwitchWeapon() {
-        registerSetting(delayMode, autoReload);
+        registerSetting(delayMode, autoReload, distanceCheck);
     }
 
     private TimeUtils timeUtils = new TimeUtils();
@@ -148,6 +165,7 @@ public class AutoSwitchWeapon extends AbstractModule {
 
     private int findNextUsableGunSlot(int currentSlot) {
         long now = System.currentTimeMillis();
+        boolean closeRangeTarget = !distanceCheck.getValue() || hasCloseRangeTarget();
 
         for (int i = 1; i <= 9; i++) {
             int slot = (currentSlot + i) % 9;
@@ -163,6 +181,9 @@ public class AutoSwitchWeapon extends AbstractModule {
                 }
             }
             ZombiesGuns gun = ZombiesGuns.getGunOrNull(stack);
+            if (isShotgun(gun) && !closeRangeTarget) {
+                continue;
+            }
             AutoSwitchWeaponConfig.GunSwitchSetting config = AutoSwitchWeaponConfig.get(gun);
             if (config == null) continue;
             if (!config.isEnabled()) continue;
@@ -182,6 +203,21 @@ public class AutoSwitchWeapon extends AbstractModule {
         }
 
         return -1;
+    }
+
+    private boolean hasCloseRangeTarget() {
+        LivingEntity target = PlayerUtils.raycastTarget(
+                ServerTracker.serverPlayer,
+                64.0D,
+                TargetHud::isValidTarget
+        );
+        return target != null
+                && mc.player.distanceTo(target) <= shotgunDistance.getValue().doubleValue();
+    }
+
+    private static boolean isShotgun(ZombiesGuns gun) {
+        return gun == ZombiesGuns.Shotgun
+                || gun == ZombiesGuns.Double_Barrel_Shotgun;
     }
 
 

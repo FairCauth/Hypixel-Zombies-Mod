@@ -224,11 +224,8 @@ public class TeammateTracker implements IMinecraft {
             if (tabUuids.contains(p.getUUID())) {
                 TeammateInfo info = TEAMMATES.get(cleanName(p.getGameProfile().name()));
                 if (info != null) {
-                    // 有 TAB UUID 的真实玩家实体 = 此账号已重新进入；即使计分板仍残留
-                    // 上一帧的红色 QUIT/DEAD，也必须立即解除终止状态。
-                    if (info.isTerminalState()) {
-                        info.clearTerminalAfterReconnect();
-                    }
+                    // QUIT 后 TAB/世界实体可能短暂残留，不能在这里覆盖计分板的终止状态。
+                    // 真正重连时计分板恢复为金币数，applyScoreboardState 会负责解除状态。
                     info.setRenderEntity(p);
                 }
             }
@@ -288,6 +285,105 @@ public class TeammateTracker implements IMinecraft {
 
     public static TeammateInfo get(String name) {
         return resolveByName(name);
+    }
+
+    /**
+     * 通过当前世界中的玩家实体找到对应队友。倒地时实体通常是假人，
+     * 所以必须优先使用 tracker 已完成的 renderEntity 关联，不能只比较实体名字。
+     */
+    public static TeammateInfo get(Player player) {
+        if (player == null) return null;
+
+        for (TeammateInfo info : TEAMMATES.values()) {
+            if (info.getRenderEntity() == player) return info;
+        }
+        return resolveByName(player.getName().getString());
+    }
+
+    /**
+     * 倒地假人可能先于计分板的 REVIVE 状态出现。这时 resolveEntities 尚不会将假人
+     * 绑定到队友，按其随机名字也找不到人；用先前记录的皮肤/位置提前关联。
+     */
+    public static TeammateInfo getReviveCandidate(Player player) {
+        TeammateInfo known = get(player);
+        if (known != null || player == null) return known;
+
+        String skin = skinOf(player);
+        if (!skin.equals("none")) {
+            TeammateInfo skinMatch = null;
+            for (TeammateInfo info : TEAMMATES.values()) {
+                if (!skin.equals(info.getSkin())) continue;
+                if (skinMatch != null) {
+                    skinMatch = null; // 重复皮肤不能用于识别。
+                    break;
+                }
+                skinMatch = info;
+            }
+            if (skinMatch != null) return skinMatch;
+        }
+
+        // 只有唯一且足够近的旧位置才作为兜底，避免重叠倒地时认错队友。
+        TeammateInfo nearest = null;
+        double nearestDistance = 1.5D * 1.5D;
+        for (TeammateInfo info : TEAMMATES.values()) {
+            if (!info.isPosKnown()) continue;
+            double dx = player.getX() - info.getLastX();
+            double dz = player.getZ() - info.getLastZ();
+            if (Math.abs(player.getY() - info.getLastY()) > 2.0D) continue;
+            double distance = dx * dx + dz * dz;
+            if (distance >= nearestDistance) continue;
+            nearestDistance = distance;
+            nearest = info;
+        }
+        if (nearest == null) return null;
+        for (TeammateInfo info : TEAMMATES.values()) {
+            if (info == nearest || !info.isPosKnown()) continue;
+            double dx = player.getX() - info.getLastX();
+            double dz = player.getZ() - info.getLastZ();
+            if (Math.abs(player.getY() - info.getLastY()) <= 2.0D
+                    && dx * dx + dz * dz <= 1.5D * 1.5D) return null;
+        }
+        return nearest;
+    }
+
+    /** 不等待队友状态同步，直接从目标附近当前的救援计时牌判断是否已在被救。 */
+    public static boolean isBeingRevivedAt(Player player) {
+        if (player == null || mc.level == null) return false;
+
+        List<Cluster> nearby = new ArrayList<>();
+        for (Entity entity : mc.level.entitiesForRendering()) {
+            if (!(entity instanceof ArmorStand)) continue;
+            double dx = entity.getX() - player.getX();
+            double dz = entity.getZ() - player.getZ();
+            if (dx * dx + dz * dz > MATCH_MAX * MATCH_MAX) continue;
+            Component name = entity.getCustomName();
+            if (name == null) continue;
+            String text = name.getString().trim();
+            if (text.isEmpty()) continue;
+
+            Cluster cluster = null;
+            for (Cluster existing : nearby) {
+                double cx = existing.x - entity.getX();
+                double cz = existing.z - entity.getZ();
+                if (cx * cx + cz * cz <= CLUSTER_XZ * CLUSTER_XZ) {
+                    cluster = existing;
+                    break;
+                }
+            }
+            if (cluster == null) {
+                cluster = new Cluster();
+                cluster.x = entity.getX();
+                cluster.z = entity.getZ();
+                nearby.add(cluster);
+            }
+            String upper = text.toUpperCase(Locale.ROOT);
+            if (upper.contains("SHIFT") || upper.contains("SNEAK")) cluster.hasShift = true;
+            if (REVIVE_TIMER.matcher(text).matches()) cluster.timerText = text;
+        }
+        for (Cluster cluster : nearby) {
+            if (cluster.timerText != null && !cluster.hasShift) return true;
+        }
+        return false;
     }
 
     public static Player getPlayer(String name) {

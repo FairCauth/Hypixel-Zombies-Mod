@@ -14,13 +14,13 @@ import com.example.client.setting.settings.NumberSetting;
 import com.example.client.skia.CanvasStack;
 import com.example.client.skia.font.SkiaFont;
 import com.example.client.skia.font.SkiaFonts;
+import com.example.client.skia.render.LiquidGlassUi;
 import com.example.client.skia.render.RenderUtils;
 import com.example.client.utils.PlayerUtils;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientboundLoginPacket;
 import net.minecraft.world.entity.EntityType;
 
-import java.awt.*;
 import java.util.Arrays;
 
 @ModuleInfo(name = {
@@ -32,22 +32,21 @@ public class LightningRodQueue extends AbstractModule {
     private static final long COOLDOWN_MS = 20_000L;
     private static final long OUTSIDE_RESET_GRACE_MS = 3_000L;
 
-    private static final float PANEL_WIDTH = 154F;
-    private static final float PANEL_HEIGHT = 45F;
-    private static final float PANEL_RADIUS = 7F;
-    private static final float PANEL_PADDING = 7F;
-    private static final float SLOT_WIDTH = 32F;
-    private static final float SLOT_HEIGHT = 23F;
-    private static final float SLOT_GAP = 4F;
+    private static final float PANEL_WIDTH = 170F;
+    private static final float PANEL_HEIGHT = 50F;
+    private static final float PANEL_RADIUS = 13F;
+    private static final float PANEL_PADDING = 7.5F;
+    private static final float SLOT_GAP = 3.5F;
+    private static final float SLOT_WIDTH =
+            (PANEL_WIDTH - PANEL_PADDING * 2F - SLOT_GAP * (SLOT_COUNT - 1)) / SLOT_COUNT;
+    private static final float SLOT_HEIGHT = 27F;
 
-    private static final int PANEL_COLOR = 0xB81A1E24;
-    private static final int PANEL_HIGHLIGHT = 0x70343C46;
-    private static final int SLOT_COLOR = 0xA8232931;
-    private static final int SLOT_INNER_COLOR = 0xE0181D23;
-    private static final int READY_COLOR = 0xFF64FF91;
-    private static final int COOLDOWN_COLOR = 0xFF41A5FF;
-    private static final int PRIMARY_TEXT_COLOR = 0xFFF3F7FA;
-    private static final int MUTED_TEXT_COLOR = 0xFF9CA9B5;
+    private static final int READY_COLOR = 0xFF72F5A5;
+    private static final int COOLDOWN_COLOR = 0xFF69BFFF;
+    private static final int PARTIAL_COLOR = 0xFFFFCC73;
+    private static final int PRIMARY_TEXT_COLOR = 0xFFF6FAFD;
+    private static final int MUTED_TEXT_COLOR = 0xFFB8C3CC;
+    private static final int SLOT_TRACK_COLOR = 0x3DFFFFFF;
 
     @SettingInfo(name = {
             @Text(label = "X", language = Language.English),
@@ -127,40 +126,56 @@ public class LightningRodQueue extends AbstractModule {
     }
 
     private void drawPanel(CanvasStack canvasStack, float x, float y, long now) {
-        SkiaFont titleFont = SkiaFonts.getDefaultFont(8);
-        SkiaFont slotFont = SkiaFonts.getDefaultFont(6);
-        SkiaFont indexFont = SkiaFonts.getDefaultFont(6);
+        SkiaFont titleFont = SkiaFonts.getBoldFont(8);
+        SkiaFont summaryFont = SkiaFonts.getBoldFont(7);
+        SkiaFont slotFont = SkiaFonts.getBoldFont(6);
+        SkiaFont indexFont = SkiaFonts.getDefaultFont(5);
 
         int readyCount = 0;
         for (long cooldownEnd : cooldownEndMs) {
             if (cooldownEnd <= now) readyCount++;
         }
 
-        RenderUtils.drawShadow(
-                canvasStack, x, y, PANEL_WIDTH, PANEL_HEIGHT, PANEL_RADIUS,
-                Color.BLACK.getRGB()
-        );
-        RenderUtils.drawBlur(canvasStack, x, y, PANEL_WIDTH, PANEL_HEIGHT, PANEL_RADIUS, 12F);
-        RenderUtils.drawRect(canvasStack, x, y, PANEL_WIDTH, PANEL_HEIGHT, PANEL_RADIUS, PANEL_COLOR);
+        int summaryColor = readyCount == SLOT_COUNT
+                ? READY_COLOR
+                : readyCount == 0 ? COOLDOWN_COLOR : PARTIAL_COLOR;
 
-        // 标题前的状态色强调线。
-        RenderUtils.drawRect(canvasStack, x + PANEL_PADDING, y + 5F, 2F, 7F, 1F, READY_COLOR);
-        titleFont.drawShadowString(
-                canvasStack, "LR QUEUE", x + PANEL_PADDING + 5F, y + 3.5F,
-                PRIMARY_TEXT_COLOR, true
+        LiquidGlassUi.drawPanel(canvasStack, x, y, PANEL_WIDTH, PANEL_HEIGHT, PANEL_RADIUS);
+
+        // 小型发光状态点代替原来的高饱和竖线。
+        LiquidGlassUi.drawStatusLight(
+                canvasStack,
+                x + PANEL_PADDING, y + 5F,
+                3F, 6F,
+                summaryColor
+        );
+        titleFont.drawString(
+                canvasStack,
+                "LR QUEUE",
+                x + PANEL_PADDING + 7F,
+                y + 3.7F,
+                PRIMARY_TEXT_COLOR
         );
 
         String readyText = readyCount + "/" + SLOT_COUNT + " READY";
-        titleFont.drawShadowString(
+        float pillWidth = summaryFont.getWidth(readyText) + 12F;
+        float pillX = x + PANEL_WIDTH - PANEL_PADDING - pillWidth;
+        LiquidGlassUi.drawPill(canvasStack, pillX, y + 3F, pillWidth, 10F, summaryColor);
+        LiquidGlassUi.drawStatusLight(
+                canvasStack,
+                pillX + 3.5F, y + 6.5F,
+                3F, 3F,
+                summaryColor
+        );
+        summaryFont.drawString(
                 canvasStack,
                 readyText,
-                x + PANEL_WIDTH - PANEL_PADDING - titleFont.getWidth(readyText),
-                y + 3.5F,
-                readyCount == 0 ? COOLDOWN_COLOR : READY_COLOR,
-                true
+                pillX + 8F,
+                y + 4F,
+                summaryColor
         );
 
-        float slotY = y + 16F;
+        float slotY = y + 16.5F;
         for (int slot = 0; slot < SLOT_COUNT; slot++) {
             float slotX = x + PANEL_PADDING + slot * (SLOT_WIDTH + SLOT_GAP);
             drawSlot(canvasStack, slotFont, indexFont, slotX, slotY, slot, now);
@@ -190,35 +205,40 @@ public class LightningRodQueue extends AbstractModule {
             progress = 1F;
         }
 
-        // 两层圆角矩形形成细描边，不依赖额外的 stroke 工具。
-        RenderUtils.drawRect(canvasStack, x, y, SLOT_WIDTH, SLOT_HEIGHT, 4F, stateColor);
-        RenderUtils.drawRect(
-                canvasStack, x + 0.75F, y + 0.75F,
-                SLOT_WIDTH - 1.5F, SLOT_HEIGHT - 1.5F, 3.5F, SLOT_INNER_COLOR
+        // 每个槽位是一块悬浮在主玻璃上的轻磨砂层，不再使用粗霓虹描边。
+        LiquidGlassUi.drawSurface(
+                canvasStack,
+                x, y, SLOT_WIDTH, SLOT_HEIGHT, 6F,
+                stateColor,
+                coolingDown ? 0x11 : 0x18,
+                coolingDown ? 0x58 : 0x70
         );
 
         String index = "#" + (slot + 1);
-        indexFont.drawShadowString(canvasStack, index, x + 3F, y + 1.5F, MUTED_TEXT_COLOR, true);
+        indexFont.drawString(canvasStack, index, x + 4F, y + 2F, MUTED_TEXT_COLOR);
 
-        // 右上角的小状态灯可以在不读文字时快速判断槽位状态。
-        RenderUtils.drawRect(canvasStack, x + SLOT_WIDTH - 6F, y + 3F, 3F, 3F, 1.5F, stateColor);
+        LiquidGlassUi.drawStatusLight(
+                canvasStack,
+                x + SLOT_WIDTH - 6.5F, y + 3.5F,
+                2.5F, 2.5F,
+                stateColor
+        );
 
-        slotFont.drawShadowString(
+        slotFont.drawString(
                 canvasStack,
                 status,
                 x + (SLOT_WIDTH - slotFont.getWidth(status)) * 0.5F,
-                y + 9F,
-                coolingDown ? PRIMARY_TEXT_COLOR : READY_COLOR,
-                true
+                y + 11F,
+                coolingDown ? PRIMARY_TEXT_COLOR : stateColor
         );
 
         RenderUtils.drawRect(
-                canvasStack, x + 3F, y + SLOT_HEIGHT - 4F,
-                SLOT_WIDTH - 6F, 2F, 1F, SLOT_COLOR
+                canvasStack, x + 4F, y + SLOT_HEIGHT - 4F,
+                SLOT_WIDTH - 8F, 1.5F, 0.75F, SLOT_TRACK_COLOR
         );
         RenderUtils.drawRect(
-                canvasStack, x + 3F, y + SLOT_HEIGHT - 4F,
-                (SLOT_WIDTH - 6F) * progress, 2F, 1F, stateColor
+                canvasStack, x + 4F, y + SLOT_HEIGHT - 4F,
+                (SLOT_WIDTH - 8F) * progress, 1.5F, 0.75F, stateColor
         );
     }
 

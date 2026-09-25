@@ -57,10 +57,7 @@ public class AbstractModule extends SettingManager implements IMinecraft {
             if(mc.player != null)
             {
 
-//                NotificationManager.info("Module", "这是一条普通通知");
-
-                NotificationManager.info("Module", ChatFormatting.AQUA + getName() +ChatFormatting.GRAY+ " was " + ChatFormatting.GREEN +"Enabled");
-                ChatUtils.print(ChatFormatting.AQUA + getName() +ChatFormatting.GRAY+ " was " + ChatFormatting.GREEN +"Enabled");
+                onNotificationEnabled();
 //                ToastUtils.show("Module", ChatFormatting.AQUA + getName() +ChatFormatting.GRAY+ " was " + ChatFormatting.GREEN +"Enabled");
             }
             onEnable();
@@ -68,15 +65,21 @@ public class AbstractModule extends SettingManager implements IMinecraft {
             EventManager.unregister(this);
             if(mc.player != null)
             {
-//                NotificationManager.warning("警告", "队友生命值过低");
-                NotificationManager.info("Module", ChatFormatting.AQUA + getName() +ChatFormatting.GRAY+ " was " + ChatFormatting.RED +"Disabled");
-                ChatUtils.print(ChatFormatting.AQUA + getName() +ChatFormatting.GRAY+ " was " + ChatFormatting.RED +"Disabled");
+               onNotificationDisabled();
 //                ToastUtils.show("Module", ChatFormatting.AQUA + getName() +ChatFormatting.GRAY+ " was " + ChatFormatting.RED +"Disabled");
             }
 
             onDisable();
         }
 
+    }
+    public void onNotificationEnabled() {
+        NotificationManager.info("Module", ChatFormatting.AQUA + getName() +ChatFormatting.GRAY+ " was " + ChatFormatting.GREEN +"Enabled");
+        ChatUtils.print(ChatFormatting.AQUA + getName() +ChatFormatting.GRAY+ " was " + ChatFormatting.GREEN +"Enabled");
+    }
+    public void onNotificationDisabled() {
+        NotificationManager.info("Module", ChatFormatting.AQUA + getName() +ChatFormatting.GRAY+ " was " + ChatFormatting.RED +"Disabled");
+        ChatUtils.print(ChatFormatting.AQUA + getName() +ChatFormatting.GRAY+ " was " + ChatFormatting.RED +"Disabled");
     }
     public String getNameKey() {
         return Language.getLabel(getTexts(), Language.getDefaultLanguage());

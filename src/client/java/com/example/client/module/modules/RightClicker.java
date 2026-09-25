@@ -129,7 +129,7 @@ public class RightClicker extends AbstractModule {
                 || block instanceof DoorBlock
                 || block instanceof TrapDoorBlock
                 || block instanceof FenceGateBlock
-                || block instanceof ChestBlock
+//                || block instanceof ChestBlock
                 || block instanceof EnderChestBlock
                 || block instanceof BarrelBlock
                 || block instanceof ShulkerBoxBlock

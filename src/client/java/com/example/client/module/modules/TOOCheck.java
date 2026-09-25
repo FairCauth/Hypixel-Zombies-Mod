@@ -8,6 +8,8 @@ import com.example.client.language.Text;
 import com.example.client.module.AbstractModule;
 import com.example.client.module.annotation.ModuleInfo;
 import com.example.client.notification.NotificationManager;
+import com.example.client.setting.annotation.SettingInfo;
+import com.example.client.setting.settings.BooleanSetting;
 import com.example.client.tracker.ServerTracker;
 import com.example.client.utils.PlayerUtils;
 import com.example.client.utils.ZombiesMap;
@@ -43,10 +45,20 @@ public class TOOCheck extends AbstractModule {
             new Window("BL", 34, 72, -2)
     };
 
+    @SettingInfo(name = {
+            @Text(label = "Auto Say", language = Language.English),
+            @Text(label = "自动报点", language = Language.Chinese)
+    })
+    public static final BooleanSetting autoSay = new BooleanSetting(false);
+
     private final Set<UUID> notifiedOldOnes = new HashSet<>();
     private int trackedRound = Integer.MIN_VALUE;
     private long trackedRoundTime = Long.MIN_VALUE;
     private long lastScanTick = Long.MIN_VALUE;
+
+    public TOOCheck() {
+        registerSetting(autoSay);
+    }
 
     @EventTarget
     public void onTick(TickEvent event) {
@@ -100,6 +112,10 @@ public class TOOCheck extends AbstractModule {
             NotificationManager.warning("THE OLD ONE", message);
         } else {
             NotificationManager.info("THE OLD ONE", message);
+        }
+
+        if (autoSay.getValue() && mc.getConnection() != null) {
+            mc.getConnection().sendChat(">>" + location + "<< TOO SPAWN!!!");
         }
     }
 

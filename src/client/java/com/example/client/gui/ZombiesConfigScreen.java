@@ -22,6 +22,8 @@ import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.glfw.GLFW;
 
+import java.util.Locale;
+
 /**
  * 主配置界面：顶部 Tab(Features / Guns Config)+ 左模块列表(可搜索) + 右设置面板(选中模块的设置)。
  * Guns Config 复用 {@link AutoSwitchWeaponScreen}（点标签切过去）。
@@ -37,7 +39,8 @@ public class ZombiesConfigScreen extends Screen {
     private ScrollPanelWidget settingsPanel; // 右：选中模块的设置
 
     private AbstractModule selected = null;
-    private String filter = "";
+    /** 与搜索框显示内容共用同一份状态，Screen 重新 init 后也要恢复。 */
+    private String searchQuery = "";
 
     private boolean listeningForKey = false;       // 绑定"打开GUI"的键
     private AbstractModule listeningModule = null; // 绑定某模块的开关键
@@ -68,8 +71,10 @@ public class ZombiesConfigScreen extends Screen {
         // ---- 搜索框 ----
         this.searchBox = new EditBox(this.font, SIDE, SEARCH_Y, LIST_W, 18, Component.literal("Search"));
         this.searchBox.setHint(Component.literal("Search…"));
+        // 先恢复文本再安装 responder，避免面板组件尚未创建时提前触发列表重建。
+        this.searchBox.setValue(this.searchQuery);
         this.searchBox.setResponder(s -> {
-            filter = s == null ? "" : s.toLowerCase();
+            searchQuery = s == null ? "" : s;
             buildModuleList();
         });
         this.addRenderableWidget(this.searchBox);
@@ -126,10 +131,12 @@ public class ZombiesConfigScreen extends Screen {
     private void buildModuleList() {
         int off = listPanel.getScrollOffset();
         listPanel.clearContent();
+        String normalizedQuery = searchQuery.toLowerCase(Locale.ROOT);
 
         int y = 6;
         for (AbstractModule module : ZombiesModClient.moduleManager.getModuleList()) {
-            if (!filter.isEmpty() && !module.getName().toLowerCase().contains(filter)) continue;
+            if (!normalizedQuery.isEmpty()
+                    && !module.getName().toLowerCase(Locale.ROOT).contains(normalizedQuery)) continue;
 
             AbstractModule m = module;
             listPanel.addScrollWidget(Button.builder(

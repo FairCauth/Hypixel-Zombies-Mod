@@ -233,35 +233,39 @@ public class TargetHud extends AbstractModule {
             return;
 
         int width = 150;
-        int height = 45;
+        int height = 65;
         int x = (int) pos.x() - width / 2;
         int y = (int) pos.y() - height;
 
 
         String name = target.getName().getString();
         float health = Math.max(0.0F, target.getHealth());
-        float maxHealth = Math.max(1.0F, target.getMaxHealth());
+        double attributeMaxHealth = getAttributeValue(target, Attributes.MAX_HEALTH);
+        float maxHealth = Math.max(1.0F, (float) attributeMaxHealth);
         float percent = Math.clamp(health / maxHealth, 0.0F, 1.0F);
 
-        int armor = target.getArmorValue();
-        float armorPercent = Math.clamp(armor / 20.0F, 0.0F, 1.0F);
-
-        double armorToughness = 0.0D;
-
-        try {
-            armorToughness = target.getAttributeValue(Attributes.ARMOR_TOUGHNESS);
-        } catch (Exception ignored) {
-        }
+        double armor = getAttributeValue(target, Attributes.ARMOR);
+        double armorToughness = getAttributeValue(target, Attributes.ARMOR_TOUGHNESS);
+        double attackDamage = getAttributeValue(target, Attributes.ATTACK_DAMAGE);
 
         double distance = mc.player.distanceTo(target);
         boolean badHeadshot = BadHeadshot.isBadHeadshotEntity(target);
         BlurRenderer.draw(event.getGuiGraphicsExtractor(),  x, y, width, height,10);
         drawBackground(event.getGuiGraphicsExtractor(), x, y, width, height, badHeadshot);
-        drawText(event.getGuiGraphicsExtractor(), x, y, name, health, maxHealth, armor, armorToughness, distance,
-                badHeadshot);
+        drawText(event.getGuiGraphicsExtractor(), x, y, name, health, maxHealth, armor, armorToughness,
+                attackDamage, distance);
 
-        GuiGraphicsUtils.drawHealthBar(event.getGuiGraphicsExtractor(), x + 8, y + 32, width - 16, 8, percent);
+        GuiGraphicsUtils.drawHealthBar(event.getGuiGraphicsExtractor(), x + 8, y + 53, width - 16, 7, percent);
 //        GuiGraphicsUtils.drawArmorBar(event.getGuiGraphicsExtractor(), x + 8, y + 50, width - 16, 8, armorPercent);
+    }
+
+    private static double getAttributeValue(LivingEntity entity,
+                                            net.minecraft.core.Holder<net.minecraft.world.entity.ai.attributes.Attribute> attribute) {
+        try {
+            return entity.getAttributeValue(attribute);
+        } catch (IllegalArgumentException ignored) {
+            return 0.0D;
+        }
     }
 
     public static void drawBackground(GuiGraphicsExtractor graphics, int x, int y, int width, int height, boolean badHeadshot) {
@@ -284,15 +288,14 @@ public class TargetHud extends AbstractModule {
             String name,
             float health,
             float maxHealth,
-            int armor,
+            double armor,
             double armorToughness,
-            double distance,
-            boolean badHeadshot
+            double attackDamage,
+            double distance
     ) {
         String hpText = String.format("%.1f / %.1f HP", health, maxHealth);
-        String armorText = armorToughness > 0.0D
-                ? String.format("DEF: %d  T: %.1f", armor, armorToughness)
-                : "DEF: " + armor;
+        String defenseText = String.format("MAX %.1f  ARM %.1f", maxHealth, armor);
+        String combatText = String.format("TOUGH %.1f  ATK %.1f", armorToughness, attackDamage);
         String distanceText = String.format("%.1f m", distance);
 
         int nameColor = 0xFFFFFFFF;
@@ -300,7 +303,8 @@ public class TargetHud extends AbstractModule {
         graphics.text(mc.font, hpText, x + 8, y + 18, 0xFFFF5555, true);
 
         graphics.text(mc.font, distanceText, x + 105, y + 18, 0xFFAAAAAA, true);
-//        graphics.text(mc.font, armorText, x + 8, y + 42, 0xFF55AAFF, true);
+        graphics.text(mc.font, defenseText, x + 8, y + 30, 0xFF55AAFF, true);
+        graphics.text(mc.font, combatText, x + 8, y + 41, 0xFFFFCC55, true);
     }
 
 

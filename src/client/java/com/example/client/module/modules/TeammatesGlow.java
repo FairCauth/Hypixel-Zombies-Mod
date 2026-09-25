@@ -14,10 +14,12 @@ import com.example.client.skia.CanvasStack;
 import com.example.client.skia.fbo.GameFramebuffer;
 import com.example.client.skia.font.SkiaFont;
 import com.example.client.skia.font.SkiaFonts;
+import com.example.client.skia.render.LiquidGlassUi;
 import com.example.client.skia.render.RenderUtils;
 import com.example.client.tracker.TeammateInfo;
 import com.example.client.utils.PlayerUtils;
 import com.example.client.utils.render.GuiGraphicsUtils;
+import io.github.humbleui.types.RRect;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
@@ -39,11 +41,28 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class TeammatesGlow extends AbstractModule {
     private static final long HP_TRAIL_HOLD_MS = 500L;
     private static final float HP_TRAIL_RETURN_PER_SECOND = 0.65F;
+    private static final float TEAM_PANEL_RADIUS = 13F;
+    private static final int TEAM_ROW_HEIGHT = 32;
+    private static final int TEAM_HEAD_INSET_X = 7;
+    private static final int TEAM_HEAD_INSET_Y = 6;
+    private static final int TEAM_HEAD_SIZE = 20;
+    private static final int TEAM_TEXT_X_OFFSET = 31;
+    private static final int TEAM_TEXT_Y_OFFSET = 5;
+    private static final int TEAM_HEALTH_Y_OFFSET = 18;
+    private static final int TEAM_ARMOR_Y_OFFSET = 24;
+    private static final int TEAM_STATUS_Y_OFFSET = 9;
+    private static final float TEAM_ROW_RADIUS = 5F;
+    private static final float TEAM_HEAD_RADIUS = 3F;
+    private static final int ALIVE_COLOR = 0xFF72F5A5;
+    private static final int BLOCKING_COLOR = 0xFFFFCC73;
+    private static final int DOWN_COLOR = 0xFF67DDFC;
+    private static final int DEAD_COLOR = 0xFFFF7581;
+    private static final int FAST_REVIVE_COLOR = 0xFFFFD56A;
 
     /**
      * Skia HUD 视觉调试；完成布局后改为 false。
      */
-    private static final boolean SKIA_DEBUG_TEAMMATES = false;
+    private static final boolean SKIA_DEBUG_TEAMMATES = true;
     private static final TeammateInfo[] SKIA_DEBUG_DATA = createSkiaDebugData();
 
     @SettingInfo(name = {
@@ -113,7 +132,7 @@ public class TeammatesGlow extends AbstractModule {
             int x = (int) (screenWidth * xPercent);
             int y = (int) (screenHeight * yPercent);
             GameFramebuffer gameFramebuffer = event.getCustomLayer();
-            int height = 28;
+            int height = TEAM_ROW_HEIGHT;
 
             CanvasStack canvasStack = event.getCanvasStack();
             TeammateInfo[] framebufferTeammates = TeammateInfo.teammates.clone();
@@ -130,13 +149,19 @@ public class TeammatesGlow extends AbstractModule {
                     Player player = ti.getRenderEntity();
                     int hpReserve = Math.round(skiaFont.getWidth("9999/9999"));
                     int fastReviveReserve = Math.round(skiaFont.getWidth("⚡5.0s")) + 4;
-                    int boxWidth = finalMaxNameWidth + hpReserve + fastReviveReserve + 15;
+                    int boxWidth = finalMaxNameWidth + hpReserve + fastReviveReserve + 18;
                     if (boxWidth > tWidth) {
                         tWidth = boxWidth;
                     }
                     if (player != null) {
 //                         System.out.println(player.getName());
-                        GuiGraphicsUtils.drawPlayerHead(graphics, player, x + 3, tempY + 3, 22);
+                        GuiGraphicsUtils.drawPlayerHead(
+                                graphics,
+                                player,
+                                x + TEAM_HEAD_INSET_X,
+                                tempY + TEAM_HEAD_INSET_Y,
+                                TEAM_HEAD_SIZE
+                        );
                     }
                     tempHeight += height;
                     tempY += height;
@@ -145,13 +170,87 @@ public class TeammatesGlow extends AbstractModule {
                 totalHeight.set(tempHeight);
             });
 
-//            System.out.println(totalHeight.get());
-            //bg
-            RenderUtils.drawShadow(canvasStack, x,y , maxWidth.get(), totalHeight.get(),5, Color.BLACK.getRGB());
-            RenderUtils.drawBlur(canvasStack, x, y, maxWidth.get(), totalHeight.get(), 5, 15);
-            RenderUtils.drawRect(canvasStack, x, y, maxWidth.get(), totalHeight.get(), 5, 0xB81A1E24);
+            int panelWidth = maxWidth.get();
+            int panelHeight = totalHeight.get();
+            if (panelWidth > 0 && panelHeight > 0) {
+                LiquidGlassUi.drawPanel(
+                        canvasStack,
+                        x, y, panelWidth, panelHeight,
+                        Math.min(TEAM_PANEL_RADIUS, panelHeight * 0.5F)
+                );
 
-            gameFramebuffer.render(canvasStack);
+                float surfaceY = y + 2F;
+                for (TeammateInfo ti : TeammateInfo.teammates) {
+                    int accent = teammateAccent(ti);
+                    LiquidGlassUi.drawSurface(
+                            canvasStack,
+                            x + 2F, surfaceY,
+                            panelWidth - 4F, height - 4F, TEAM_ROW_RADIUS,
+                            accent,
+                            ti.isDown() || ti.isTerminalState() ? 0x16 : 0x0B,
+                            ti.isDown() || ti.isTerminalState() ? 0x5C : 0x35
+                    );
+                    surfaceY += height;
+                }
+            }
+
+            if (panelWidth > 0 && panelHeight > 0) {
+                canvasStack.push();
+                try {
+                    // 先限制在整个面板内，避免列表变化时首尾头像穿过外层圆角。
+                    canvasStack.canvas().clipRRect(
+                            RRect.makeXYWH(
+                                    x, y, panelWidth, panelHeight,
+                                    Math.min(TEAM_PANEL_RADIUS, panelHeight * 0.5F)
+                            ),
+                            true
+                    );
+
+                    // Minecraft 头像原图是直角方块。给每张头像单独做很小的圆角裁切，
+                    // 保留方形观感，同时让它与队友行的圆角描边协调。
+                    float headY = y + TEAM_HEAD_INSET_Y;
+                    for (TeammateInfo ti : framebufferTeammates) {
+                        if (ti.getRenderEntity() != null) {
+                            canvasStack.push();
+                            try {
+                                canvasStack.canvas().clipRRect(
+                                        RRect.makeXYWH(
+                                                x + TEAM_HEAD_INSET_X,
+                                                headY,
+                                                TEAM_HEAD_SIZE,
+                                                TEAM_HEAD_SIZE,
+                                                TEAM_HEAD_RADIUS
+                                        ),
+                                        true
+                                );
+                                gameFramebuffer.render(canvasStack);
+                            } finally {
+                                canvasStack.pop();
+                            }
+                        }
+                        headY += height;
+                    }
+
+                    float headOutlineY = y + TEAM_HEAD_INSET_Y;
+                    for (TeammateInfo ti : framebufferTeammates) {
+                        if (ti.getRenderEntity() != null) {
+                            LiquidGlassUi.drawRoundedStroke(
+                                    canvasStack,
+                                    x + TEAM_HEAD_INSET_X - 0.35F,
+                                    headOutlineY - 0.35F,
+                                    TEAM_HEAD_SIZE + 0.7F,
+                                    TEAM_HEAD_SIZE + 0.7F,
+                                    TEAM_HEAD_RADIUS + 0.35F,
+                                    LiquidGlassUi.withAlpha(teammateAccent(ti), 0x68),
+                                    0.7F
+                            );
+                        }
+                        headOutlineY += height;
+                    }
+                } finally {
+                    canvasStack.pop();
+                }
+            }
             for (TeammateInfo ti : TeammateInfo.teammates) {
                 Player player = ti.getRenderEntity();
 
@@ -167,9 +266,7 @@ public class TeammatesGlow extends AbstractModule {
                         + ChatFormatting.GOLD + " " + formatGold(ti.getGold())
                         + ChatFormatting.YELLOW + (blocking? " (Blocking)" : "");
 
-                int hpReserve = Math.round(skiaFont.getWidth("9999/9999"));
-                int fastReviveReserve = Math.round(skiaFont.getWidth("⚡5.0s")) + 15;
-                int boxWidth = maxNameWidth + hpReserve + fastReviveReserve + 4;
+                int boxWidth = Math.max(1, panelWidth);
 
                 if (player != null) {
 
@@ -177,35 +274,35 @@ public class TeammatesGlow extends AbstractModule {
                     float maxHealth = Math.max(1.0F, player.getMaxHealth());
                     float percent = Math.clamp(health / maxHealth, 0.0F, 1.0F);
 
-                    skiaFont.drawShadowString(canvasStack, name, x + 28, y + 3, Color.WHITE.getRGB(), true);
+                    skiaFont.drawString(canvasStack, name, x + TEAM_TEXT_X_OFFSET, y + TEAM_TEXT_Y_OFFSET, Color.WHITE.getRGB());
                     String hp = (int) Math.ceil(health) + "/" + (int) Math.ceil(maxHealth);
                     int hpColor = percent > 0.5f ? 0xFF66FF66 : (percent > 0.25f ? 0xFFFFD633 : 0xFFFF5555);
-                    skiaFont.drawShadowString(canvasStack, hp, x + boxWidth - skiaFont.getWidth(hp) - 6, y + 3, hpColor, true);
+                    skiaFont.drawString(canvasStack, hp, x + boxWidth - skiaFont.getWidth(hp) - 6, y + TEAM_TEXT_Y_OFFSET, hpColor);
 
                     //health bar
-                    float healthBarX = x + 28F;
-                    float healthBarY = y + 16F;
-                    float healthBarWidth = boxWidth - 28F - 6F;
+                    float healthBarX = x + TEAM_TEXT_X_OFFSET;
+                    float healthBarY = y + TEAM_HEALTH_Y_OFFSET;
+                    float healthBarWidth = boxWidth - TEAM_TEXT_X_OFFSET - 6F;
                     float trailPercent = updateHpTrail(
                             percent,
                             HP_ANIMS.computeIfAbsent(ti.getName(), ignored -> new HpAnim())
                     );
-                    RenderUtils.drawRect(canvasStack, healthBarX, healthBarY, healthBarWidth, 3F, 4F,
-                            new Color(24, 24, 24, 180).getRGB());
+                    RenderUtils.drawRect(canvasStack, healthBarX, healthBarY, healthBarWidth, 3F, 1.5F,
+                            0x4AFFFFFF);
                     float currentWidth = healthBarWidth * percent;
                     float trailWidth = healthBarWidth * trailPercent;
                     if (trailWidth - currentWidth > 0.25F) {
                         RenderUtils.drawRect(canvasStack, healthBarX + currentWidth, healthBarY,
                                 trailWidth - currentWidth, 3F, 0F, 0xD9FFFFFF);
                     }
-                    RenderUtils.drawRect(canvasStack, healthBarX, healthBarY, currentWidth, 3F, 4F,
+                    RenderUtils.drawRect(canvasStack, healthBarX, healthBarY, currentWidth, 3F, 1.5F,
                             GuiGraphicsUtils.getHealthColor(percent));
 
                     //armor bar
                     int armor = player.getArmorValue();
                     float armorPercent = Math.clamp(armor / 20.0F, 0.0F, 1.0F);
-                    RenderUtils.drawRect(canvasStack, x + 28, y + 22, boxWidth - 28 - 6, 3, 4, new Color(24, 24, 24, 130).getRGB());
-                    RenderUtils.drawRect(canvasStack, x + 28, y + 22, (boxWidth - 28 - 6) * armorPercent, 3, 4, GuiGraphicsUtils.getArmorColor(armorPercent));
+                    RenderUtils.drawRect(canvasStack, x + TEAM_TEXT_X_OFFSET, y + TEAM_ARMOR_Y_OFFSET, boxWidth - TEAM_TEXT_X_OFFSET - 6, 3, 1.5F, 0x36FFFFFF);
+                    RenderUtils.drawRect(canvasStack, x + TEAM_TEXT_X_OFFSET, y + TEAM_ARMOR_Y_OFFSET, (boxWidth - TEAM_TEXT_X_OFFSET - 6) * armorPercent, 3, 1.5F, GuiGraphicsUtils.getArmorColor(armorPercent));
 
 
                 }
@@ -215,9 +312,8 @@ public class TeammatesGlow extends AbstractModule {
                             : ti.getStatusText().toUpperCase(Locale.ROOT);
                     Color terminalColor = new Color(255, 85, 85);
                     float statusWidth = skiaFont.getWidth(terminalText);
-                    RenderUtils.drawRect(canvasStack, x, y, boxWidth, height, 0, 0xAA111111);
-//                   graphics.fill(x, y, x + boxWidth, y + height, 0xAA111111);
-                    skiaFont.drawShadowString(canvasStack, terminalText, (x + boxWidth / 2F - statusWidth / 2F), y + 7, terminalColor.getRGB(), true);
+                    RenderUtils.drawRect(canvasStack, x + 2F, y + 2F, boxWidth - 4F, height - 4F, 7F, 0x8A150B10);
+                    skiaFont.drawString(canvasStack, terminalText, (x + boxWidth / 2F - statusWidth / 2F), y + TEAM_STATUS_Y_OFFSET, terminalColor.getRGB());
 
                 } else if (down) {
                     boolean reviving = ti.isBeingRevived();
@@ -227,16 +323,21 @@ public class TeammatesGlow extends AbstractModule {
 
                     float strW = skiaFont.getWidth(str);
 //                   graphics.fill(x, y, x + boxWidth, y + height, 0xAA111111);
-                    RenderUtils.drawRect(canvasStack, x, y, boxWidth, height, 0, 0xAA111111);
-                    skiaFont.drawShadowString(canvasStack, str, (x + boxWidth / 2f - (strW / 2f)), y + 7, reviving ? Color.cyan.getRGB() : Color.GREEN.getRGB(), true);
+                    RenderUtils.drawRect(canvasStack, x + 2F, y + 2F, boxWidth - 4F, height - 4F, 7F, 0x7A07151A);
+                    skiaFont.drawString(canvasStack, str, (x + boxWidth / 2f - (strW / 2f)), y + TEAM_STATUS_Y_OFFSET, reviving ? DOWN_COLOR : ALIVE_COLOR);
                 }
 
                 if (fastReviveActive) {
                     int hpReferenceWidth = (int) skiaFont.getWidth("20/20");
                     int timerRight = x + boxWidth - 12 - hpReferenceWidth - 4;
                     int timerX = (int) (timerRight - skiaFont.getWidth(fastReviveText));
-                    skiaFont.drawShadowString(canvasStack, fastReviveText, timerX, y + 3,
-                            new Color(255, 255, 85).getRGB(), true);
+                    skiaFont.drawString(canvasStack, fastReviveText, timerX, y + TEAM_TEXT_Y_OFFSET, FAST_REVIVE_COLOR);
+                    RenderUtils.drawRect(
+                            canvasStack,
+                            x + 4F, y + height - 2F,
+                            (boxWidth - 8F) * ti.getFastReviveProgress(), 1F, 0.5F,
+                            FAST_REVIVE_COLOR
+                    );
                 }
 //                skiaFont.drawString(canvasStack, player);
 //                System.out.println("11111");
@@ -497,6 +598,17 @@ public class TeammatesGlow extends AbstractModule {
         a.ghost = Math.max(target, Math.clamp(a.ghost, 0F, 1F));
         a.lastTarget = target;
         return a.ghost;
+    }
+
+    private static int teammateAccent(TeammateInfo info) {
+        if (info.isTerminalState()) return DEAD_COLOR;
+        if (info.isDown()) return DOWN_COLOR;
+        if (info.isFastReviveActive()) return FAST_REVIVE_COLOR;
+
+        Player player = info.getRenderEntity();
+        return player != null && PlayerUtils.isPlayerBlockingHyp(player)
+                ? BLOCKING_COLOR
+                : ALIVE_COLOR;
     }
 
     private static String formatGold(long gold) {

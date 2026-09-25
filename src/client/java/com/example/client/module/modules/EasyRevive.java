@@ -9,14 +9,11 @@ import com.example.client.language.Text;
 import com.example.client.module.AbstractModule;
 import com.example.client.module.annotation.ModuleInfo;
 import com.example.client.setting.annotation.SettingInfo;
-import com.example.client.setting.attribute.SettingAttribute;
 import com.example.client.setting.settings.BooleanSetting;
 import com.example.client.setting.settings.ModeSetting;
 import com.example.client.setting.settings.NumberSetting;
 import com.example.client.utils.PlayerUtils;
-import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.protocol.game.ServerboundInteractPacket;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
@@ -37,23 +34,13 @@ public class EasyRevive extends AbstractModule {
             @Text(label = "Range", language = Language.English),
             @Text(label = "距离", language = Language.Chinese)
     })
-    public static final NumberSetting range = new NumberSetting(4.5d, 1, 5, "#.0");
-    @SettingInfo(name = {
-            @Text(label = "Resize Aura", language = Language.English),
-            @Text(label = "救人光环", language = Language.Chinese)
-    })
-    public static final BooleanSetting aura = new BooleanSetting(false,
-            new SettingAttribute<>(range, true)
-    );
+    public static final NumberSetting range = new NumberSetting(4.5D, 1.0D, 5.0D, "#.0");
 
     @SettingInfo(name = {
             @Text(label = "Mode", language = Language.English),
             @Text(label = "模式", language = Language.Chinese)
     })
-    public static final ModeSetting mode = new ModeSetting("Packet", Arrays.asList("AABB", "Packet"),
-            new SettingAttribute<>(aura, "Packet")
-
-    );
+    public static final ModeSetting mode = new ModeSetting("AABB", Arrays.asList("AABB", "Packet"));
 
     @SettingInfo(name = {
             @Text(label = "Show BoundingBox", language = Language.English),
@@ -62,22 +49,7 @@ public class EasyRevive extends AbstractModule {
     public static final BooleanSetting showBB = new BooleanSetting(true);
 
     public EasyRevive() {
-        registerSetting(mode, showBB);
-    }
-
-    @Override
-    protected void onEnable() {
-        super.onEnable();
-
-
-
-    }
-
-    @Override
-    protected void onDisable() {
-        super.onDisable();
-
-
+        registerSetting(mode, range, showBB);
     }
 
     public static boolean isDown(Player player) {
@@ -137,17 +109,7 @@ public class EasyRevive extends AbstractModule {
         Player player = raycastDownedPlayer(range.getValue().doubleValue());
         if (player == null) return;
 
-        Vec3 eye = mc.player.getEyePosition();
-        Vec3 relativeHit = player.getBoundingBox().clip(eye, player.position())
-                .map(hit -> hit.subtract(player.getX(), player.getY(), player.getZ()))
-                .orElse(Vec3.ZERO);
-
-        mc.getConnection().send(new ServerboundInteractPacket(
-                player.getId(),
-                InteractionHand.MAIN_HAND,
-                relativeHit,
-                false
-        ));
+        sendRevivePacket(player);
     }
 
     private Player raycastDownedPlayer(double distance) {
@@ -181,6 +143,25 @@ public class EasyRevive extends AbstractModule {
     @EventTarget
     public void onTick(TickEvent event) {
         applyExpandedBoundingBoxes();
+    }
+
+    private boolean sendRevivePacket(Player player) {
+        if (player == null || mc.player == null || mc.getConnection() == null) {
+            return false;
+        }
+
+        Vec3 eye = mc.player.getEyePosition();
+        Vec3 relativeHit = player.getBoundingBox().clip(eye, player.position())
+                .map(hit -> hit.subtract(player.getX(), player.getY(), player.getZ()))
+                .orElse(Vec3.ZERO);
+
+        mc.getConnection().send(new ServerboundInteractPacket(
+                player.getId(),
+                InteractionHand.MAIN_HAND,
+                relativeHit,
+                false
+        ));
+        return true;
     }
 
 }

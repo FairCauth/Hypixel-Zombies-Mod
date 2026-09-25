@@ -25,6 +25,9 @@ public final class Skia implements IMinecraft {
     private static int lastWidth = -1;
     private static int lastHeight = -1;
     private static int lastFbId = -1;
+    private static int mainGuiFramebuffer = -1;
+    private static int mainGuiFramebufferWidth = -1;
+    private static int mainGuiFramebufferHeight = -1;
     @Getter
     private static boolean init = false;
     private static BiConsumer<CanvasStack, GameFramebuffer> renderCallback;
@@ -141,6 +144,13 @@ public final class Skia implements IMinecraft {
 
     public static void tick() {
         if (!Skia.isInit()) return;
+        if (mainGuiFramebuffer <= 0
+                || mainGuiFramebufferWidth != mc.getWindow().getWidth()
+                || mainGuiFramebufferHeight != mc.getWindow().getHeight()
+                || !GL30.glIsFramebuffer(mainGuiFramebuffer)) {
+            return;
+        }
+        GlStateManager._glBindFramebuffer(GL30.GL_FRAMEBUFFER, mainGuiFramebuffer);
         checkAndUpdateSurface();
         beginFrame();
 
@@ -171,6 +181,20 @@ public final class Skia implements IMinecraft {
                     frameSnapshot.close();
                 }
             }
+        }
+    }
+
+    /**
+     * Called while Minecraft's main GUI RenderPass is still active. Its close()
+     * immediately binds framebuffer 0, so remember the real target first and
+     * rebind it from tick() before vanilla starts drawing the next GUI frame.
+     */
+    public static void captureMainGuiFramebuffer() {
+        int framebuffer = GL11.glGetInteger(GL30.GL_DRAW_FRAMEBUFFER_BINDING);
+        if (framebuffer > 0) {
+            mainGuiFramebuffer = framebuffer;
+            mainGuiFramebufferWidth = mc.getWindow().getWidth();
+            mainGuiFramebufferHeight = mc.getWindow().getHeight();
         }
     }
 

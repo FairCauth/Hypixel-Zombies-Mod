@@ -24,9 +24,14 @@ public class ConnectionMixin {
     }
     @Inject(
             method = "send(Lnet/minecraft/network/protocol/Packet;)V",
-            at = @At("HEAD")
+            at = @At("HEAD"),
+            cancellable = true
     )
     private void zombiesmod$send(Packet<?> packet, CallbackInfo ci) {
-        EventManager.call(new PacketEvent(packet));
+        PacketEvent event = new PacketEvent(packet);
+        EventManager.call(event);
+        if (event.isCancelled()) {
+            ci.cancel();
+        }
     }
 }

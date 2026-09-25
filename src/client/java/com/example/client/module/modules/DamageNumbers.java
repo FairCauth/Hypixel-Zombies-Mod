@@ -29,6 +29,7 @@ import net.minecraft.world.phys.Vec3;
 
 import java.awt.Color;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -43,6 +44,8 @@ import java.util.Map;
         @Text(label = "数字显示", language = Language.Chinese)
 }, enable = false)
 public class DamageNumbers extends AbstractModule {
+    private static final double ZAPPER_SPREAD_RADIUS = 6.0D;
+    private static final long ZAPPER_SPREAD_TTL_MS = 750L;
 
     @SettingInfo(name = {
             @Text(label = "Only In Zombies", language = Language.English),
@@ -87,10 +90,23 @@ public class DamageNumbers extends AbstractModule {
         }
     }
 
+    /** 同一发 Zombie Zapper 的多条金币反馈依次分配给不同实体。 */
+    private static final class ZapperSpread {
+        final List<Integer> targetIds;
+        final long createdAt;
+        int nextIndex;
+
+        ZapperSpread(List<Integer> targetIds, long createdAt) {
+            this.targetIds = targetIds;
+            this.createdAt = createdAt;
+        }
+    }
+
     private record GradientColors(Color top, Color bottom) { }
 
     private final Map<Integer, Float> lastHp = new HashMap<>();
     private final List<Num> nums = new ArrayList<>();
+    private final Map<Long, ZapperSpread> zapperSpreads = new HashMap<>();
 
     public DamageNumbers() {
         registerSetting(onlyGame, showDamage, showGold);
@@ -98,9 +114,14 @@ public class DamageNumbers extends AbstractModule {
 
     @EventTarget
     public void onTick(TickEvent event) {
-        if (mc.player == null || mc.level == null) return;
+        if (mc.player == null || mc.level == null) {
+            zapperSpreads.clear();
+            return;
+        }
+        pruneZapperSpreads(System.currentTimeMillis());
         if (onlyGame.getValue() && !PlayerUtils.isInHypZombies()) {
             lastHp.clear();
+            zapperSpreads.clear();
             return;
         }
 
@@ -216,7 +237,6 @@ public class DamageNumbers extends AbstractModule {
         if (onlyGame.getValue() && !PlayerUtils.isInHypZombies()) return;
 
         // ===== 可热改参数 =====
-        double raycastDist = 64;        // 准星射线最远找几格内的怪
         double headOffset = 1.2;        // 锚点 = 怪头顶高度倍数
         double goldYOffset = 0.35;      // 再往上一点（在伤害字上方）
         float goldSpreadPx = 18f;       // 屏幕水平随机偏移（像素，±）
@@ -235,11 +255,15 @@ public class DamageNumbers extends AbstractModule {
         int gold = ZombiesUtils.getGoldFromChat(msg);
         if (gold <= 0) return;
 
-        // 准星指向的怪
-        LivingEntity target = ServerTracker.shootTarget;//PlayerUtils.raycastTarget(ServerTracker.serverPlayer, raycastDist, TargetHud::isValidTarget);
-        if (target == null) return;
-
         HitResult hit = event.getHitResult();
+        // 非 ZZ 始终沿用准星目标；ZZ 同一发的多条金币反馈会依次分配到附近实体。
+        LivingEntity primaryTarget = ServerTracker.shootTarget;
+        if (primaryTarget == null) return;
+        boolean zapperHit = hit != null && hit.gun() == ZombiesGuns.Zombie_Zapper;
+        LivingEntity target = zapperHit
+                ? nextZapperTarget(hit.shotId(), primaryTarget)
+                : primaryTarget;
+
         boolean crit = hit != null ? hit.critical() : ZombiesUtils.isCritical(msg);
         GradientColors colors;
         if (hit != null && crit) {
@@ -253,13 +277,60 @@ public class DamageNumbers extends AbstractModule {
         }
         float startScale = crit ? critStartScale : normalStartScale;
 
-        double gx = target.getX() + (Math.random() * 2 - 1) * goldRandXZ;
+        // ZZ 已经通过实体位置分散，随机偏移应更小，确保数字看起来属于对应实体。
+        double effectiveRandXZ = zapperHit ? 0.35D : goldRandXZ;
+        double effectiveRandY = zapperHit ? 0.30D : goldRandY;
+        float effectiveSpreadPx = zapperHit ? 8F : goldSpreadPx;
+        double gx = target.getX() + (Math.random() * 2 - 1) * effectiveRandXZ;
         double gy = target.getY() + target.getBbHeight() * headOffset + goldYOffset
-                + (Math.random() * 2 - 1) * goldRandY;
-        double gz = target.getZ() + (Math.random() * 2 - 1) * goldRandXZ;
-        float spread = (float) ((Math.random() * 2 - 1) * goldSpreadPx);
+                + (Math.random() * 2 - 1) * effectiveRandY;
+        double gz = target.getZ() + (Math.random() * 2 - 1) * effectiveRandXZ;
+        float spread = (float) ((Math.random() * 2 - 1) * effectiveSpreadPx);
         nums.add(new Num(gx, gy, gz, "+" + String.format("%,d", gold),
                 colors.top(), colors.bottom(), startScale, spread));
+    }
+
+    private LivingEntity nextZapperTarget(long shotId, LivingEntity primaryTarget) {
+        long now = System.currentTimeMillis();
+        pruneZapperSpreads(now);
+
+        ZapperSpread spread = zapperSpreads.computeIfAbsent(
+                shotId,
+                ignored -> new ZapperSpread(collectZapperTargets(primaryTarget), now)
+        );
+        int targetCount = spread.targetIds.size();
+        for (int attempts = 0; attempts < targetCount; attempts++) {
+            int targetId = spread.targetIds.get(spread.nextIndex % targetCount);
+            spread.nextIndex++;
+            Entity entity = mc.level.getEntity(targetId);
+            if (entity instanceof LivingEntity living
+                    && (living == primaryTarget || TargetHud.isValidTarget(living))) {
+                return living;
+            }
+        }
+        return primaryTarget;
+    }
+
+    private List<Integer> collectZapperTargets(LivingEntity primaryTarget) {
+        double radiusSq = ZAPPER_SPREAD_RADIUS * ZAPPER_SPREAD_RADIUS;
+        List<LivingEntity> targets = new ArrayList<>();
+        targets.add(primaryTarget);
+
+        for (Entity entity : mc.level.entitiesForRendering()) {
+            if (entity == primaryTarget || !TargetHud.isValidTarget(entity)) continue;
+            if (entity.distanceToSqr(primaryTarget) > radiusSq) continue;
+            targets.add((LivingEntity) entity);
+        }
+
+        // 第一条显示在准星目标上，后续按距离由近到远分散到连锁范围内的实体。
+        targets.subList(1, targets.size()).sort(
+                Comparator.comparingDouble(entity -> entity.distanceToSqr(primaryTarget))
+        );
+        return targets.stream().map(Entity::getId).toList();
+    }
+
+    private void pruneZapperSpreads(long now) {
+        zapperSpreads.values().removeIf(spread -> now - spread.createdAt > ZAPPER_SPREAD_TTL_MS);
     }
 
     /** 未强化时为纯武器色；强化后由顶部武器原色渐变到底部白色。 */
