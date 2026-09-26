@@ -6,7 +6,8 @@ import com.example.client.module.modules.HideZombies;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.monster.zombie.Zombie;
+import net.minecraft.world.entity.decoration.ArmorStand;
+import net.minecraft.world.entity.npc.villager.AbstractVillager;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
 
@@ -30,24 +31,25 @@ public class HidePlayerHelper implements IMinecraft {
             return false;
         }
 
-        return overlapsSelf(target, HideBlockingPlayer.fadeOverlapExpand.getValue().doubleValue());
+        return withinFadeRange(target, HideBlockingPlayer.fadeRange.getValue().doubleValue());
     }
 
-    public static boolean shouldFade(Zombie target) {
-        HideZombies hideZombies = (HideZombies) ZombiesModClient.moduleManager.getModule("module.hide_zombies");
-        if (hideZombies == null || !hideZombies.isEnable()) {
-            return false;
-        }
-
-        return overlapsSelf(target, HideZombies.fadeOverlapExpand.getValue().doubleValue());
+    private static boolean isHideEntitiesTarget(LivingEntity target) {
+        return !(target instanceof Player)
+                && !(target instanceof AbstractVillager)
+                && !(target instanceof ArmorStand);
     }
 
     public static boolean shouldFade(LivingEntity target) {
         if (target instanceof Player player) {
             return shouldFade(player);
         }
-        if (target instanceof Zombie zombie) {
-            return shouldFade(zombie);
+        if (isHideEntitiesTarget(target)) {
+            HideZombies hideZombies = (HideZombies) ZombiesModClient.moduleManager.getModule("module.hide_zombies");
+            if (hideZombies == null || !hideZombies.isEnable()) {
+                return false;
+            }
+            return withinFadeRange(target, HideZombies.fadeRange.getValue().doubleValue());
         }
         return false;
     }
@@ -60,7 +62,7 @@ public class HidePlayerHelper implements IMinecraft {
         if (livingEntity instanceof Player) {
             return HideBlockingPlayer.fullHide.getValue();
         }
-        if (livingEntity instanceof Zombie) {
+        if (isHideEntitiesTarget(livingEntity)) {
             return HideZombies.fullHide.getValue();
         }
         return false;
@@ -70,10 +72,29 @@ public class HidePlayerHelper implements IMinecraft {
         if (target instanceof Player) {
             return HideBlockingPlayer.fullHide.getValue();
         }
-        if (target instanceof Zombie) {
+        if (isHideEntitiesTarget(target)) {
             return HideZombies.fullHide.getValue();
         }
         return false;
+    }
+
+    public static int fadeAlpha(LivingEntity target) {
+        double range;
+        int minimumAlpha;
+        if (target instanceof Player) {
+            range = HideBlockingPlayer.fadeRange.getValue().doubleValue();
+            minimumAlpha = HideBlockingPlayer.fullHide.getValue() ? 0 : 50;
+        } else if (isHideEntitiesTarget(target)) {
+            range = HideZombies.fadeRange.getValue().doubleValue();
+            minimumAlpha = HideZombies.fullHide.getValue() ? 0 : 50;
+        } else {
+            return 255;
+        }
+
+        double distance = horizontalDistance(target);
+        if (range <= 1.0) return distance <= 1.0 ? minimumAlpha : 255;
+        double progress = Math.max(0.0, Math.min(1.0, (distance - 1.0) / (range - 1.0)));
+        return (int) Math.round(minimumAlpha + (255 - minimumAlpha) * progress);
     }
 
     private static boolean overlapsSelf(LivingEntity target, double expand) {
@@ -87,6 +108,18 @@ public class HidePlayerHelper implements IMinecraft {
         AABB targetBox = target.getBoundingBox();
 
         return selfBox.intersects(targetBox);
+    }
+
+    private static boolean withinFadeRange(LivingEntity target, double range) {
+        return horizontalDistance(target) <= range;
+    }
+
+    private static double horizontalDistance(LivingEntity target) {
+        LocalPlayer self = mc.player;
+        if (self == null || mc.level == null || target == self || target.isInvisible()) return Double.POSITIVE_INFINITY;
+        double dx = self.getX() - target.getX();
+        double dz = self.getZ() - target.getZ();
+        return Math.sqrt(dx * dx + dz * dz);
     }
 
     public static int alphaWhite(int alpha) {

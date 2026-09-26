@@ -35,7 +35,12 @@ public class LivingEntityRendererChamsMixin {
     @Inject(method = "extractRenderState", at = @At("TAIL"))
     private void zombiesmod$flagChams(LivingEntity entity, LivingEntityRenderState state, float partialTicks, CallbackInfo ci) {
         if (state instanceof ChamsState cs) {
-            cs.zombiesmod$setChams(zombiesmod$isChamsTarget(entity));
+            boolean chamsTarget = zombiesmod$isChamsTarget(entity);
+            cs.zombiesmod$setChams(chamsTarget);
+            if (chamsTarget && entity.isInvisible()) {
+                state.isInvisible = false;
+                state.isInvisibleToPlayer = false;
+            }
         }
     }
 
@@ -86,6 +91,7 @@ public class LivingEntityRendererChamsMixin {
         AbstractModule m = ZombiesModClient.moduleManager.getModule("module.zombie_chams");
         if (m == null || !m.isEnable()) return false;
         if (ZombieChams.onlyGame.getValue() && !PlayerUtils.isInHypZombies()) return false;
+        if (entity.isInvisible() && !ZombieChams.invisibleEntities.getValue()) return false;
         return entity instanceof Enemy || entity instanceof Wolf || entity instanceof IronGolem;
     }
 

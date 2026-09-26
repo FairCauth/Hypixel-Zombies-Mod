@@ -3,11 +3,9 @@ package com.example.client.module.modules;
 import com.darkmagician6.eventapi.EventTarget;
 import com.example.client.data.ZombiesGuns;
 import com.example.client.events.RenderEvent;
-import com.example.client.language.Language;
 import com.example.client.module.AbstractModule;
 import com.example.client.module.annotation.ModuleInfo;
 import com.example.client.setting.annotation.SettingInfo;
-import com.example.client.setting.settings.BooleanSetting;
 import com.example.client.setting.settings.ModeSetting;
 import com.example.client.setting.settings.NumberSetting;
 import com.example.client.mixin.MouseHandlerInvoker;
@@ -41,11 +39,11 @@ public class RightClicker extends AbstractModule {
     @SettingInfo(name = "setting.min_cps")
     private final NumberSetting minCPS = new NumberSetting(11, 1.0, 20.0, "#");
     @SettingInfo(name = "setting.only_guns")
-    private final BooleanSetting onlyGuns = new BooleanSetting(true);
+    private final ModeSetting filterMode = new ModeSetting("Guns", Arrays.asList("Any", "Guns", "Tools"));
     public TimeUtils rightClickTimer = new TimeUtils();
 
     public RightClicker() {
-        registerSetting(mode, maxCPS, minCPS, onlyGuns);
+        registerSetting(mode, maxCPS, minCPS, filterMode);
 
     }
 
@@ -55,10 +53,17 @@ public class RightClicker extends AbstractModule {
         if (shouldSkipInteraction()) {
             return;
         }
+        if (mc.player == null) return;
         ItemStack current = mc.player.getMainHandItem();
 
-        if(onlyGuns.getValue() && !ZombiesGuns.isZombiesGun(current)) {
-            return;
+        if (filterMode.is("Guns") && !ZombiesGuns.isZombiesGun(current)) return;
+        if (filterMode.is("Tools")) {
+            net.minecraft.resources.Identifier model =
+                    current.get(net.minecraft.core.component.DataComponents.ITEM_MODEL);
+            if (model == null) return;
+            String path = model.getPath();
+            if (!path.contains("hoe") && !path.contains("shovel")
+                    && !path.contains("pickaxe") && !path.equals("flint_and_steel")) return;
         }
         long delay = TimeUtils.randomClickDelay(minCPS.getValue().intValue(), maxCPS.getValue().intValue());
         if (rightClickTimer.hasTimeElapsed(delay, true)) {
@@ -87,7 +92,8 @@ public class RightClicker extends AbstractModule {
 
         switch (mc.hitResult.getType()) {
             case BLOCK -> {
-                BlockHitResult blockHit = (BlockHitResult) mc.hitResult;
+                if (!(mc.hitResult instanceof BlockHitResult blockHit)) return false;
+                if (mc.level == null) return false;
                 BlockPos pos = blockHit.getBlockPos();
                 BlockState state = mc.level.getBlockState(pos);
                 Block block = state.getBlock();
@@ -96,7 +102,7 @@ public class RightClicker extends AbstractModule {
             }
 
             case ENTITY -> {
-                EntityHitResult entityHit = (EntityHitResult) mc.hitResult;
+                if (!(mc.hitResult instanceof EntityHitResult entityHit)) return false;
                 Entity entity = entityHit.getEntity();
 
                 return isInteractableEntity(entity);

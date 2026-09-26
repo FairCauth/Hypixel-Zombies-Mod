@@ -42,7 +42,7 @@ public class AutoSwitchWeaponScreen extends Screen {
     private static final int BIND_WIDTH = 52;
 
     public AutoSwitchWeaponScreen(Screen parent) {
-        super(GuiText.text("auto_switch_weapon"));
+        super(GuiText.text("gui.auto_switch_weapon"));
         this.parent = parent;
     }
 
@@ -60,7 +60,7 @@ public class AutoSwitchWeaponScreen extends Screen {
         this.addRenderableWidget(this.scrollPanel);
 
         this.addRenderableWidget(Button.builder(
-                GuiText.text("done"),
+                GuiText.text("gui.done"),
                 button -> {
                     ZombiesConfig.save();
                     this.onClose();
@@ -116,8 +116,8 @@ public class AutoSwitchWeaponScreen extends Screen {
                     true
             );
             this.scrollPanel.addScrollText(
-                        GuiText.textString("damage_label", gun.getDamage()) + "  "
-                            + GuiText.textString("gold_label", gun.getGold(), gun.getCriticalGold()),
+                        GuiText.textString("gui.damage_label", gun.getDamage()) + "  "
+                            + GuiText.textString("gui.gold_label", gun.getGold(), gun.getCriticalGold()),
                     nameX,
                     y + 23,
                     0xFFAAAAAA,
@@ -185,8 +185,8 @@ public class AutoSwitchWeaponScreen extends Screen {
 
         graphics.text(
                 this.font,
-                GuiText.text("auto_switch_weapon"),
-                this.width / 2 - this.font.width(GuiText.text("auto_switch_weapon")) / 2,
+                GuiText.text("gui.auto_switch_weapon"),
+                this.width / 2 - this.font.width(GuiText.text("gui.auto_switch_weapon")) / 2,
                 10,
                 0xFFFFFFFF,
                 true
@@ -205,11 +205,11 @@ public class AutoSwitchWeaponScreen extends Screen {
         int foldX = bindX - FOLD_WIDTH - 8;
         int switchX = foldX - SWITCH_WIDTH - 12;
 
-        graphics.text(this.font, GuiText.text("weapon"), panelX + 28, 49, 0xFFAAAAAA, false);
-        graphics.text(this.font, GuiText.text("switch"), panelX + switchX, 49, 0xFFAAAAAA, false);
-        graphics.text(this.font, GuiText.text("fold"), panelX + foldX, 49, 0xFFAAAAAA, false);
-        graphics.text(this.font, GuiText.text("key"), panelX + bindX, 49, 0xFFAAAAAA, false);
-        graphics.text(this.font, GuiText.text("cooldowns"), panelX + 230, 49, 0xFFAAAAAA, false);
+        graphics.text(this.font, GuiText.text("gui.weapon"), panelX + 28, 49, 0xFFAAAAAA, false);
+        graphics.text(this.font, GuiText.text("gui.switch"), panelX + switchX, 49, 0xFFAAAAAA, false);
+        graphics.text(this.font, GuiText.text("gui.fold"), panelX + foldX, 49, 0xFFAAAAAA, false);
+        graphics.text(this.font, GuiText.text("gui.key"), panelX + bindX, 49, 0xFFAAAAAA, false);
+        graphics.text(this.font, GuiText.text("gui.cooldowns"), panelX + 230, 49, 0xFFAAAAAA, false);
 
         graphics.fill(24, 60, this.width - 24, 61, 0xFF333333);
     }
@@ -259,23 +259,23 @@ public class AutoSwitchWeaponScreen extends Screen {
 
     private static Component weaponText(ZombiesGuns gun) {
         return Component.literal(gun.getDisplayName() + "  ")
-                .append(GuiText.text("damage").copy().append(Component.literal(String.valueOf(gun.getDamage())))
+                .append(GuiText.text("gui.damage").copy().append(Component.literal(String.valueOf(gun.getDamage())))
                         .withStyle(ChatFormatting.GRAY));
     }
 
     private static Component switchText(boolean value) {
-        return GuiText.text("switch").copy().append(Component.literal(": "))
-                .append(GuiText.text(value ? "on" : "off").copy()
+        return GuiText.text("gui.switch").copy().append(Component.literal(": "))
+            .append(GuiText.text(value ? "gui.on" : "gui.off").copy()
                         .withStyle(value ? ChatFormatting.GREEN : ChatFormatting.RED));
     }
 
     private static String cooldownLabel(ZombiesGuns gun, int ultimateLevel) {
         double damage = gun.getDamageByUltimateLevel(ultimateLevel);
         if (ultimateLevel <= 0) {
-            return GuiText.textString("base") + " (" + GuiText.textString("damage") + damage + ")";
+            return GuiText.textString("gui.base") + " (" + GuiText.textString("gui.damage") + damage + ")";
         }
-        return GuiText.textString("ultimate") + " " + toRoman(ultimateLevel)
-            + " (" + GuiText.textString("damage") + damage + ")";
+        return GuiText.textString("gui.ultimate") + " " + toRoman(ultimateLevel)
+            + " (" + GuiText.textString("gui.damage") + damage + ")";
     }
 
     private static String toRoman(int value) {

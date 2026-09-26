@@ -31,6 +31,7 @@ public final class ChamsRenderType {
                     .withLocation("pipeline/zombiesmod_chams_depth_seed")
                     .withShaderDefine("ALPHA_CUTOUT", 0.1F)
                     .withShaderDefine("PER_FACE_LIGHTING")
+                    .withShaderDefine("NO_OVERLAY")
                     .withCull(false)
                     .withDepthStencilState(new DepthStencilState(CompareOp.LESS_THAN, true))
                     .build();
@@ -41,7 +42,6 @@ public final class ChamsRenderType {
                     RenderSetup.builder(DEPTH_SEED_PIPELINE)
                             .withTexture("Sampler0", texture)
                             .useLightmap()
-                            .useOverlay()
                             .setOutline(RenderSetup.OutlineProperty.NONE)
                             .createRenderSetup()));
 

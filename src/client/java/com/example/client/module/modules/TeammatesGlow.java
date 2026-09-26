@@ -38,6 +38,8 @@ public class TeammatesGlow extends AbstractModule {
     public static final NumberSetting posX = new NumberSetting(0.1, 0, 1, "#.00");
     @SettingInfo(name = "setting.y")
     public static final NumberSetting posY = new NumberSetting(0.1, 0, 1, "#.00");
+    @SettingInfo(name = "setting.scale")
+    public static final NumberSetting scale = new NumberSetting(1.0, 0.5, 2.0, "#.0");
 
     /** 每个队友的血条动画状态（按名字）。 */
     private static final Map<String, HpAnim> HP_ANIMS = new HashMap<>();
@@ -49,7 +51,7 @@ public class TeammatesGlow extends AbstractModule {
     }
 
     public TeammatesGlow() {
-        registerSetting(onlyGame, info, posX, posY);
+        registerSetting(onlyGame, info, posX, posY, scale);
     }
     @EventTarget
     public void onRender(RenderEvent event) {
@@ -58,17 +60,11 @@ public class TeammatesGlow extends AbstractModule {
         if(!info.getValue()) return;
 
         GuiGraphicsExtractor graphics = event.getGuiGraphicsExtractor();
-        int maxNameWidth = 0;
+        int boxWidth = getHudWidth();
 
         Set<String> currentNames = new HashSet<>();
         for (TeammateInfo ti : TeammateInfo.teammates) {
             currentNames.add(ti.getName());
-            String line = ti.getName() + " " + formatGold(ti.getGold()) + " (Blocking)";
-            int nameWidth = mc.font.width(line);
-
-            if (nameWidth > maxNameWidth) {
-                maxNameWidth = nameWidth;
-            }
         }
 
         int screenWidth = mc.getWindow().getGuiScaledWidth();
@@ -79,8 +75,13 @@ public class TeammatesGlow extends AbstractModule {
 
         int x = (int) (screenWidth * xPercent);
         int y = (int) (screenHeight * yPercent);
+        float hudScale = scale.getValue().floatValue();
 
         int height = 28;
+
+        graphics.pose().pushMatrix();
+        graphics.pose().translate(x * (1.0F - hudScale), y * (1.0F - hudScale));
+        graphics.pose().scale(hudScale, hudScale);
 
         for (TeammateInfo ti : TeammateInfo.teammates) {
             Player player = ti.getRenderEntity();
@@ -97,9 +98,6 @@ public class TeammatesGlow extends AbstractModule {
                     + ChatFormatting.GOLD + " " + formatGold(ti.getGold())
                     + ChatFormatting.YELLOW + (blocking ? " (Blocking)" : "");
 
-            int hpReserve = mc.font.width("9999/9999");
-            int fastReviveReserve = mc.font.width("⚡5.0s") + 4;
-            int boxWidth = maxNameWidth + 32 + hpReserve + fastReviveReserve;
             GuiGraphicsUtils.drawBackground(graphics, x, y, boxWidth, height);
 
             if (player != null) {
@@ -181,6 +179,21 @@ public class TeammatesGlow extends AbstractModule {
 
         // 清理已不在面板里的队友的动画状态，防止泄漏/复用串味
         HP_ANIMS.keySet().retainAll(currentNames);
+        graphics.pose().popMatrix();
+    }
+
+    public static int getHudWidth() {
+        int maxNameWidth = 0;
+        for (TeammateInfo ti : TeammateInfo.teammates) {
+            String line = ti.getName() + " " + formatGold(ti.getGold()) + " (Blocking)";
+            maxNameWidth = Math.max(maxNameWidth, mc.font.width(line));
+        }
+
+        return maxNameWidth + 32 + mc.font.width("9999/9999") + mc.font.width("⚡5.0s") + 4;
+    }
+
+    public static int getHudHeight() {
+        return Math.max(28, TeammateInfo.teammates.length * 28);
     }
 
     /**

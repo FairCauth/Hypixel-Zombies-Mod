@@ -17,8 +17,12 @@ public class Notification extends AbstractModule {
     public static final BooleanSetting roundRecorder = new BooleanSetting(true);
     @SettingInfo(name = "setting.aa_round_suggest")
     public static final BooleanSetting roundSuggest = new BooleanSetting(true);
+    @SettingInfo(name = "setting.aa_round_chat")
+    public static final BooleanSetting aaRoundChat = new BooleanSetting(false);
+    @SettingInfo(name = "setting.game_stat_chat")
+    public static final BooleanSetting gameStatChat = new BooleanSetting(false);
 
     public Notification() {
-        registerSetting(roundRecorder, roundSuggest);
+        registerSetting(roundRecorder, roundSuggest, aaRoundChat, gameStatChat);
     }
 }

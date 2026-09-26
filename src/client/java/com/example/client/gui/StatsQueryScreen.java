@@ -34,7 +34,7 @@ public class StatsQueryScreen extends Screen {
     private static final int BOTTOM_SPACE = 44;
 
     public StatsQueryScreen(Screen parent) {
-        super(GuiText.text("stats_query"));
+        super(GuiText.text("gui.stats_query"));
         this.parent = parent;
     }
 
@@ -44,7 +44,7 @@ public class StatsQueryScreen extends Screen {
         Minecraft mc = Minecraft.getInstance();
 
         // API key 输入框
-        this.apiKeyBox = new EditBox(this.font, cx - 150, API_Y, 274, 20, GuiText.text("api_key"));
+        this.apiKeyBox = new EditBox(this.font, cx - 150, API_Y, 274, 20, GuiText.text("gui.api_key"));
         this.apiKeyBox.setMaxLength(64);
         this.apiKeyBox.setResponder(s -> { if (!apiKeyHidden) ZombiesConfig.apiKey = s; });
         applyMask();
@@ -66,7 +66,7 @@ public class StatsQueryScreen extends Screen {
         }
 
         // 一键查询
-        this.addRenderableWidget(Button.builder(GuiText.text("query_all"), b -> {
+        this.addRenderableWidget(Button.builder(GuiText.text("gui.query_all"), b -> {
             for (Entry e : players) HypixelStats.query(e.name(), e.uuid());
         }).bounds(cx - 100, QUERY_Y, 200, 20).build());
 
@@ -80,7 +80,7 @@ public class StatsQueryScreen extends Screen {
         // 每行：右侧放一个真正的 Query 按钮；名字/战绩文字在 render 里按滚动对齐画
         for (int i = 0; i < players.size(); i++) {
             Entry e = players.get(i);
-            Button q = Button.builder(GuiText.text("query"),
+            Button q = Button.builder(GuiText.text("gui.query"),
                     b -> HypixelStats.query(e.name(), e.uuid())).bounds(0, 0, 70, 20).build();
             this.scrollPanel.addScrollWidget(q, panelW - 70 - 16, i * ROW_HEIGHT + 4);
         }
@@ -88,7 +88,7 @@ public class StatsQueryScreen extends Screen {
         this.addRenderableWidget(this.scrollPanel);
 
         // Done
-        this.addRenderableWidget(Button.builder(GuiText.text("done"), b -> onClose())
+        this.addRenderableWidget(Button.builder(GuiText.text("gui.done"), b -> onClose())
                 .bounds(cx - 100, this.height - 28, 200, 20).build());
     }
 
@@ -97,10 +97,10 @@ public class StatsQueryScreen extends Screen {
         super.extractRenderState(graphics, mouseX, mouseY, delta);
 
         int cx = this.width / 2;
-        Component title = GuiText.text("stats_query");
+        Component title = GuiText.text("gui.stats_query");
         graphics.text(this.font, title, cx - this.font.width(title) / 2, 8, 0xFFFFFFFF, true);
         NavTabs.draw(graphics, this.font, this.width, 3);
-        graphics.text(this.font, GuiText.text("api_key_label"), cx - 150, 48, 0xFFAAAAAA, true);
+        graphics.text(this.font, GuiText.text("gui.api_key_label"), cx - 150, 48, 0xFFAAAAAA, true);
 
         // 名字/战绩文字：和按钮同样跟随滚动，裁剪到面板内
         int scroll = this.scrollPanel.getScrollOffset();

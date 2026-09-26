@@ -12,7 +12,10 @@ public class ZombieChams extends AbstractModule {
     @SettingInfo(name = "setting.only_in_zombies")
     public static final BooleanSetting onlyGame = new BooleanSetting(true);
 
+    @SettingInfo(name = "setting.invisible_entities")
+    public static final BooleanSetting invisibleEntities = new BooleanSetting(true);
+
     public ZombieChams() {
-        registerSetting(onlyGame);
+        registerSetting(onlyGame, invisibleEntities);
     }
 }
