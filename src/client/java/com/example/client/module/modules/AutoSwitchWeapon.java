@@ -6,13 +6,13 @@ import com.example.client.config.AutoSwitchWeaponConfig;
 import com.example.client.events.TickEvent;
 import com.example.client.gui.AutoSwitchWeaponScreen;
 import com.example.client.gui.ZombiesConfigScreen;
-import com.example.client.language.Language;
 import com.example.client.module.AbstractModule;
 import com.example.client.module.annotation.ModuleInfo;
 import com.example.client.setting.annotation.SettingInfo;
 import com.example.client.setting.attribute.SettingAttribute;
 import com.example.client.setting.settings.BooleanSetting;
 import com.example.client.setting.settings.ButtonSetting;
+import com.example.client.setting.settings.HotbarSlotSetting;
 import com.example.client.setting.settings.ModeSetting;
 import com.example.client.setting.settings.NumberSetting;
 import com.example.client.utils.TimeUtils;
@@ -29,10 +29,19 @@ import java.util.EnumMap;
 @ModuleInfo(name = "module.auto_switch_weapon", enable = true)
 public class AutoSwitchWeapon extends AbstractModule {
 
+    // -- 快捷栏模式：各槽位（激活状态 + 绑键合一） --
+
+    @SettingInfo(name = "setting.hotbar_slot_2_key")
+    public static final HotbarSlotSetting slot2 = new HotbarSlotSetting(true, 0);
+
+    @SettingInfo(name = "setting.hotbar_slot_3_key")
+    public static final HotbarSlotSetting slot3 = new HotbarSlotSetting(true, 0);
+
+    @SettingInfo(name = "setting.hotbar_slot_4_key")
+    public static final HotbarSlotSetting slot4 = new HotbarSlotSetting(false, 0);
 
     @SettingInfo(name = "setting.switch_delay")
     public static final NumberSetting switchDelay = new NumberSetting(200, 10, 1000, "#");
-
 
     @SettingInfo(name = "setting.guns_config")
     public static final ButtonSetting gunsConfig = new ButtonSetting() {
@@ -43,26 +52,41 @@ public class AutoSwitchWeapon extends AbstractModule {
             }
             mc.gui.setScreen(AutoSwitchWeaponScreen.instance);
         }
+        @Override
+        public boolean isDisplay() {
+            return switchType.is("Weapon") && delayMode.is("Cooldown");
+        }
     };
 
-    @SettingInfo(name = "setting.delay_mode")
-    // Interval全局线性间隔 Cooldown = 每把枪独立冷
-    public static final ModeSetting delayMode = new ModeSetting("Interval", Arrays.asList("Interval", "Cooldown"),
-            new SettingAttribute<>(switchDelay, "Interval"),
-            new SettingAttribute<>(gunsConfig, "Cooldown")
+    // -- 切换类型：武器识别（默认）/ 快捷栏 --
+
+    @SettingInfo(name = "setting.switch_type")
+    public static final ModeSetting switchType = new ModeSetting(
+            "Weapon", Arrays.asList("Weapon", "Hotbar"),
+            new SettingAttribute<>(slot2, "Hotbar"),
+            new SettingAttribute<>(slot3, "Hotbar"),
+            new SettingAttribute<>(slot4, "Hotbar")
     );
+
+    @SettingInfo(name = "setting.delay_mode")
+    public static final ModeSetting delayMode = new ModeSetting("Interval", Arrays.asList("Interval", "Cooldown"),
+            new SettingAttribute<>(switchDelay, "Interval")
+    );
+
     @SettingInfo(name = "setting.auto_reload_durability_1")
     public static final BooleanSetting autoReload = new BooleanSetting(false);
 
     public AutoSwitchWeapon() {
-        registerSetting(delayMode, autoReload);
+        registerSetting(switchType, delayMode, gunsConfig, autoReload);
     }
 
-    private TimeUtils timeUtils = new TimeUtils();
+    private final TimeUtils timeUtils = new TimeUtils();
     private static boolean lastUseDown = false;
 
-    // Manual 每把枪独立冷却,记录每把枪上次被切到的时间戳
+    // Cooldown 模式：记录每把枪上次被切到的时间戳
     private final EnumMap<ZombiesGuns, Long> lastSwitchMs = new EnumMap<>(ZombiesGuns.class);
+    // 快捷栏模式：每个槽位（索引0=槽2,1=槽3,2=槽4）上次被切到的时间戳
+    private final long[] lastHotbarSwitchMs = {0L, 0L, 0L};
 
     @EventTarget
     public void onClick(TickEvent event) {
@@ -76,6 +100,7 @@ public class AutoSwitchWeapon extends AbstractModule {
         boolean useDown = mc.options.keyUse.isDown();
 
         if (!useDown) {
+            lastUseDown = false;
             timeUtils.reset();
             return;
         }
@@ -96,9 +121,15 @@ public class AutoSwitchWeapon extends AbstractModule {
             timeUtils.reset();
             return;
         }
-        switchToNextGun();
 
+        if (switchType.is("Hotbar")) {
+            switchToNextHotbarSlot();
+        } else {
+            switchToNextGun();
+        }
     }
+
+    // ── 武器识别模式 ──────────────────────────────────────────────────────────
 
     private void switchToNextGun() {
         ItemStack current = mc.player.getMainHandItem();
@@ -108,27 +139,17 @@ public class AutoSwitchWeapon extends AbstractModule {
         }
 
         int currentSlot = mc.player.getInventory().getSelectedSlot();
-
         int nextSlot = findNextUsableGunSlot(currentSlot);
 
         if (nextSlot == -1 || nextSlot == currentSlot) {
             return;
         }
 
-        // 记录这把枪被切到的时间，开始它自己的冷却
         ItemStack nextStack = mc.player.getInventory().getItem(nextSlot);
-        ZombiesGuns nextGun = ZombiesGuns.getGunOrNull(nextStack);
-        if (nextGun != null) {
-            lastSwitchMs.put(nextGun, System.currentTimeMillis());
-        }
-
-        // 切到"需要换弹"的枪（耐久=1，或耐久满但弹夹只剩 1 发）→ 同一流程里立刻左键换弹
         boolean reload = needsReload(nextStack);
-
         setSelectedSlot(nextSlot);
-
         if (reload) {
-            KeyMapping.click(mc.options.keyAttack.getDefaultKey()); // 左键 = 换弹
+            KeyMapping.click(mc.options.keyAttack.getDefaultKey());
         }
     }
 
@@ -139,66 +160,87 @@ public class AutoSwitchWeapon extends AbstractModule {
             int slot = (currentSlot + i) % 9;
             ItemStack stack = mc.player.getInventory().getItem(slot);
 
-            if (!ZombiesGuns.isZombiesGun(stack)) {
-                continue;
-            }
+            if (!ZombiesGuns.isZombiesGun(stack)) continue;
+            if (isReloadingGun(stack) && !needsReload(stack)) continue;
 
-            if (isReloadingGun(stack)) {
-                if (!needsReload(stack)) {
-                    continue;
-                }
-            }
             ZombiesGuns gun = ZombiesGuns.getGunOrNull(stack);
             AutoSwitchWeaponConfig.GunSwitchSetting config = AutoSwitchWeaponConfig.get(gun);
-            if (config == null) continue;
-            if (!config.isEnabled()) continue;
+            if (config == null || !config.isEnabled()) continue;
 
             if (delayMode.is("Cooldown")) {
                 long last = lastSwitchMs.getOrDefault(gun, 0L);
-                if (now - last < AutoSwitchWeaponConfig.getSwitchDelay(stack)) {
-                    continue;
-                }
+                if (now - last < AutoSwitchWeaponConfig.getSwitchDelay(stack)) continue;
             } else {
-                //线性间隔模式
-                if (!timeUtils.hasTimeElapsed(switchDelay.getValue().longValue(), true)) {
-                    return -1;
-                }
+                if (!timeUtils.hasTimeElapsed(switchDelay.getValue().longValue(), true)) return -1;
             }
             return slot;
         }
-
         return -1;
     }
 
+    // ── 快捷栏模式 ────────────────────────────────────────────────────────────
 
-    /** 切到这把枪后是否需要左键换弹：剩余耐久=1（耐久条剩 1），或耐久满但弹夹只剩 1 发。 */
+    private void switchToNextHotbarSlot() {
+        int currentSlot = mc.player.getInventory().getSelectedSlot();
+        // 仅当当前槽位在 2/3/4（索引 1/2/3）时才触发切换
+        if (currentSlot < 1 || currentSlot > 3) return;
+        int nextSlot = findNextUsableHotbarSlot(currentSlot);
+
+        if (nextSlot == -1 || nextSlot == currentSlot) return;
+
+        // 记录切换时间
+        lastHotbarSwitchMs[nextSlot - 1] = System.currentTimeMillis();
+
+        ItemStack nextStack = mc.player.getInventory().getItem(nextSlot);
+        boolean reload = needsReload(nextStack);
+        setSelectedSlot(nextSlot);
+        if (reload) {
+            KeyMapping.click(mc.options.keyAttack.getDefaultKey());
+        }
+    }
+
+    private int findNextUsableHotbarSlot(int currentSlot) {
+        // 快捷栏 2、3、4 对应背包索引 1、2、3
+        int[] slots = {1, 2, 3};
+        boolean[] actives = {slot2.isActive(), slot3.isActive(), slot4.isActive()};
+        long now = System.currentTimeMillis();
+        long delay = switchDelay.getValue().longValue();
+
+        int startIdx = 0;
+        for (int i = 0; i < slots.length; i++) {
+            if (slots[i] == currentSlot) { startIdx = i; break; }
+        }
+
+        for (int i = 1; i <= slots.length; i++) {
+            int idx = (startIdx + i) % slots.length;
+            if (!actives[idx]) continue;
+            if (slots[idx] == currentSlot) continue;
+            if (delayMode.is("Cooldown")) {
+                if (now - lastHotbarSwitchMs[idx] < delay) continue;
+            } else {
+                if (!timeUtils.hasTimeElapsed(delay, true)) return -1;
+            }
+            return slots[idx];
+        }
+        return -1;
+    }
+
+    // ── 公共工具 ──────────────────────────────────────────────────────────────
+
+    /** 切到这把枪后是否需要左键换弹：剩余耐久=1。 */
     private boolean needsReload(ItemStack stack) {
         if (!autoReload.getValue() || !ZombiesGuns.isZombiesGun(stack)) return false;
-        if (stack.isDamageableItem() && stack.getMaxDamage() - stack.getDamageValue() == 1)
-            return true; // 剩余耐久（maxDamage - damageValue）= 1，即耐久条只剩 1
-
-//        if (stack.getDamageValue() == 0 && stack.getCount() == 1)
-//            return true;     // 耐久满 + 只剩 1 发
-
-        return false;
+        return stack.isDamageableItem() && stack.getMaxDamage() - stack.getDamageValue() == 1;
     }
 
     private static boolean isReloadingGun(ItemStack stack) {
         if (!ZombiesGuns.isZombiesGun(stack)) return false;
-        if (!stack.isDamageableItem()) {
-            return false;
-        }
-
-        //耐久不是满的,就是在换弹
+        if (!stack.isDamageableItem()) return false;
         return stack.getDamageValue() > 0;
     }
 
-
     private static void setSelectedSlot(int slot) {
-        if (slot < 0 || slot > 8)
-            return;
+        if (slot < 0 || slot > 8) return;
         mc.player.getInventory().setSelectedSlot(slot);
     }
-
-
 }

@@ -9,6 +9,8 @@ import com.example.client.setting.Setting;
 import com.example.client.setting.SettingManager;
 import com.example.client.setting.settings.BooleanSetting;
 import com.example.client.setting.settings.ButtonSetting;
+import com.example.client.setting.settings.HotbarSlotSetting;
+import com.example.client.setting.settings.KeyBindSetting;
 import com.example.client.setting.settings.ModeSetting;
 import com.example.client.setting.settings.NumberSetting;
 import com.example.client.utils.render.DoubleSliderButton;
@@ -43,8 +45,9 @@ public class ZombiesConfigScreen extends Screen {
     private AbstractModule selected = null;
     private String filter = "";
 
-    private boolean listeningForKey = false;       // 绑定"打开GUI"的键
-    private AbstractModule listeningModule = null; // 绑定某模块的开关键
+    private boolean listeningForKey = false;         // 绑定"打开GUI"的键
+    private AbstractModule listeningModule = null;   // 绑定某模块的开关键
+    private KeyBindSetting listeningKeybind = null;  // 绑定某 KeyBindSetting
     private Button guiBindButton;
 
     private static final int SIDE = 20;
@@ -236,6 +239,39 @@ public class ZombiesConfigScreen extends Screen {
                     ).bounds(0, 0, sw, 20).build(), 12, y);
                     y += ITEM_H;
                 }
+                case HotbarSlotSetting hotbarSlotSetting -> {
+                    final HotbarSlotSetting hss = hotbarSlotSetting;
+                    int toggleW = sw - 66;
+                    settingsPanel.addScrollWidget(Button.builder(
+                            boolText(setting.getName(), hss.isActive()),
+                            b -> {
+                                hss.toggleActive();
+                                b.setMessage(boolText(setting.getName(), hss.isActive()));
+                                ZombiesConfig.save();
+                            }
+                    ).bounds(0, 0, toggleW, 20).build(), 12, y);
+                    settingsPanel.addScrollWidget(Button.builder(
+                            hss.getValue() <= 0
+                                    ? GuiText.text("gui.none").copy().withStyle(ChatFormatting.GRAY)
+                                    : Component.literal(InputConstants.Type.KEYSYM.getOrCreate(hss.getValue()).getDisplayName().getString()).withStyle(ChatFormatting.AQUA),
+                            b -> {
+                                listeningKeybind = hss;
+                                b.setMessage(Component.literal("<...>").withStyle(ChatFormatting.YELLOW));
+                            }
+                    ).bounds(0, 0, 60, 20).build(), 12 + toggleW + 6, y);
+                    y += ITEM_H;
+                }
+                case KeyBindSetting keyBindSetting -> {
+                    final KeyBindSetting kbs = keyBindSetting;
+                    settingsPanel.addScrollWidget(Button.builder(
+                            keybindText(setting.getName(), kbs.getValue()),
+                            b -> {
+                                listeningKeybind = kbs;
+                                b.setMessage(Component.literal(setting.getName() + ": ").append(Component.literal("<...>").withStyle(ChatFormatting.YELLOW)));
+                            }
+                    ).bounds(0, 0, sw, 20).build(), 12, y);
+                    y += ITEM_H;
+                }
                 case ButtonSetting buttonSetting -> {
                     settingsPanel.addScrollWidget(Button.builder(
                             Component.literal(setting.getName()),
@@ -277,6 +313,14 @@ public class ZombiesConfigScreen extends Screen {
             int key = event.key();
             this.listeningModule.setKey(key == GLFW.GLFW_KEY_ESCAPE ? 0 : key);
             this.listeningModule = null;
+            ZombiesConfig.save();
+            buildSettings();
+            return true;
+        }
+        if (this.listeningKeybind != null) {
+            int key = event.key();
+            this.listeningKeybind.setValue(key == GLFW.GLFW_KEY_ESCAPE ? 0 : key);
+            this.listeningKeybind = null;
             ZombiesConfig.save();
             buildSettings();
             return true;
@@ -335,6 +379,12 @@ public class ZombiesConfigScreen extends Screen {
         return Component.literal(name + ": ")
                 .append(GuiText.text(value ? "gui.on" : "gui.off").copy()
                         .withStyle(value ? ChatFormatting.GREEN : ChatFormatting.RED));
+    }
+
+    private static Component keybindText(String name, int key) {
+        if (key <= 0) return Component.literal(name + ": ").append(GuiText.text("gui.none").copy().withStyle(ChatFormatting.GRAY));
+        String keyName = InputConstants.Type.KEYSYM.getOrCreate(key).getDisplayName().getString();
+        return Component.literal(name + ": ").append(Component.literal(keyName).withStyle(ChatFormatting.AQUA));
     }
 
     private static Component modeText(String name, Object value) {

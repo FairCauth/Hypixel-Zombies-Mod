@@ -12,15 +12,13 @@ import com.example.client.events.KeyInputEvent;
 import com.example.client.gui.ZombiesConfigScreen;
 import com.example.client.module.AbstractModule;
 import com.example.client.module.ModuleManager;
+import com.example.client.module.modules.AutoSwitchWeapon;
 import com.example.client.tracker.ServerTracker;
 import com.example.client.utils.ChatUtils;
 import com.example.client.utils.IMinecraft;
 import net.fabricmc.api.ClientModInitializer;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.world.item.ItemStack;
 import org.lwjgl.glfw.GLFW;
 
 public class ZombiesModClient implements ClientModInitializer, IMinecraft {
@@ -94,5 +92,21 @@ public class ZombiesModClient implements ClientModInitializer, IMinecraft {
 			}
 		}
 
+		// 快捷栏模式：各槽位独立开关键
+		if (AutoSwitchWeapon.switchType.is("Hotbar")) {
+			checkHotbarSlotKey(event.getKey(), AutoSwitchWeapon.slot2, 2);
+			checkHotbarSlotKey(event.getKey(), AutoSwitchWeapon.slot3, 3);
+			checkHotbarSlotKey(event.getKey(), AutoSwitchWeapon.slot4, 4);
+		}
+
+	}
+
+	private void checkHotbarSlotKey(int pressedKey, com.example.client.setting.settings.HotbarSlotSetting slot, int slotNumber) {
+		if (slot.getValue() == 0 || pressedKey != slot.getValue()) return;
+		slot.toggleActive();
+		ZombiesConfig.save();
+		ChatUtils.print(GuiText.text("gui.hotbar_slot", slotNumber).copy().withStyle(ChatFormatting.YELLOW)
+				.append(GuiText.text(slot.isActive() ? "chat.enabled" : "chat.disabled").copy()
+						.withStyle(slot.isActive() ? ChatFormatting.GREEN : ChatFormatting.RED)));
 	}
 }
