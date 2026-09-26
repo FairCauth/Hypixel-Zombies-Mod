@@ -6,7 +6,8 @@ import com.example.client.module.modules.HideZombies;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.monster.zombie.Zombie;
+import net.minecraft.world.entity.decoration.ArmorStand;
+import net.minecraft.world.entity.npc.villager.AbstractVillager;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
 
@@ -33,21 +34,22 @@ public class HidePlayerHelper implements IMinecraft {
         return withinFadeRange(target, HideBlockingPlayer.fadeRange.getValue().doubleValue());
     }
 
-    public static boolean shouldFade(Zombie target) {
-        HideZombies hideZombies = (HideZombies) ZombiesModClient.moduleManager.getModule("module.hide_zombies");
-        if (hideZombies == null || !hideZombies.isEnable()) {
-            return false;
-        }
-
-        return withinFadeRange(target, HideZombies.fadeRange.getValue().doubleValue());
+    private static boolean isHideEntitiesTarget(LivingEntity target) {
+        return !(target instanceof Player)
+                && !(target instanceof AbstractVillager)
+                && !(target instanceof ArmorStand);
     }
 
     public static boolean shouldFade(LivingEntity target) {
         if (target instanceof Player player) {
             return shouldFade(player);
         }
-        if (target instanceof Zombie zombie) {
-            return shouldFade(zombie);
+        if (isHideEntitiesTarget(target)) {
+            HideZombies hideZombies = (HideZombies) ZombiesModClient.moduleManager.getModule("module.hide_zombies");
+            if (hideZombies == null || !hideZombies.isEnable()) {
+                return false;
+            }
+            return withinFadeRange(target, HideZombies.fadeRange.getValue().doubleValue());
         }
         return false;
     }
@@ -60,7 +62,7 @@ public class HidePlayerHelper implements IMinecraft {
         if (livingEntity instanceof Player) {
             return HideBlockingPlayer.fullHide.getValue();
         }
-        if (livingEntity instanceof Zombie) {
+        if (isHideEntitiesTarget(livingEntity)) {
             return HideZombies.fullHide.getValue();
         }
         return false;
@@ -70,7 +72,7 @@ public class HidePlayerHelper implements IMinecraft {
         if (target instanceof Player) {
             return HideBlockingPlayer.fullHide.getValue();
         }
-        if (target instanceof Zombie) {
+        if (isHideEntitiesTarget(target)) {
             return HideZombies.fullHide.getValue();
         }
         return false;
@@ -82,7 +84,7 @@ public class HidePlayerHelper implements IMinecraft {
         if (target instanceof Player) {
             range = HideBlockingPlayer.fadeRange.getValue().doubleValue();
             minimumAlpha = HideBlockingPlayer.fullHide.getValue() ? 0 : 50;
-        } else if (target instanceof Zombie) {
+        } else if (isHideEntitiesTarget(target)) {
             range = HideZombies.fadeRange.getValue().doubleValue();
             minimumAlpha = HideZombies.fullHide.getValue() ? 0 : 50;
         } else {
