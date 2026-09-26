@@ -81,6 +81,7 @@ public class AutoSwitchWeapon extends AbstractModule {
     }
 
     private final TimeUtils timeUtils = new TimeUtils();
+    private final TimeUtils holdTimer = new TimeUtils();
     private static boolean lastUseDown = false;
 
     // Cooldown 模式：记录每把枪上次被切到的时间戳
@@ -105,10 +106,16 @@ public class AutoSwitchWeapon extends AbstractModule {
             return;
         }
 
-        // 右键刚按下，先等几 tick，让当前枪先开火
+        // 右键刚按下，记录按下时刻，等待足够长的持续时间
         if (!lastUseDown) {
+            holdTimer.reset();
             timeUtils.reset();
             lastUseDown = true;
+            return;
+        }
+
+        // 持续按住不足 200ms，不切换
+        if (!holdTimer.hasTimeElapsed(200, false)) {
             return;
         }
 
