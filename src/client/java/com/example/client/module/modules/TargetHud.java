@@ -8,6 +8,8 @@ import com.example.client.language.GuiText;
 import com.example.client.module.AbstractModule;
 import com.example.client.module.annotation.ModuleInfo;
 import com.example.client.setting.annotation.SettingInfo;
+import com.example.client.setting.attribute.SettingAttribute;
+import com.example.client.setting.settings.ModeSetting;
 import com.example.client.setting.settings.NumberSetting;
 import com.example.client.tracker.ServerTracker;
 import com.example.client.utils.PlayerUtils;
@@ -24,13 +26,23 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.List;
+
 @ModuleInfo(name = "module.target_hud", enable = true)
 public class TargetHud extends AbstractModule {
     @SettingInfo(name = "setting.distance")
     private final NumberSetting distance = new NumberSetting(35, 1, 50, "#");
+    @SettingInfo(name = "setting.x")
+    private final NumberSetting posX = new NumberSetting(0.02, 0, 1, "#.00");
+    @SettingInfo(name = "setting.y")
+    private final NumberSetting posY = new NumberSetting(0.72, 0, 1, "#.00");
+    @SettingInfo(name = "setting.hud_type")
+    private final ModeSetting hudType = new ModeSetting("style1", List.of("style1", "style2"),
+            new SettingAttribute<>(posX, "style2"),
+            new SettingAttribute<>(posY, "style2"));
 
     public TargetHud() {
-        registerSetting(distance);
+        registerSetting(distance, hudType);
     }
     private int raycastTimer = 0;
     private LivingEntity target = null;
@@ -46,9 +58,19 @@ public class TargetHud extends AbstractModule {
 
     @EventTarget
     public void onRender(RenderEvent event) {
-        if (target == null)
+        if (target == null || !target.isAlive() || mc.player == null)
             return;
 
+        GuiGraphicsExtractor graphics = event.getGuiGraphicsExtractor();
+        if (hudType.is("style1")) {
+            renderClassic(graphics, event);
+            return;
+        }
+
+        renderDamageEngine(graphics);
+    }
+
+    private void renderClassic(GuiGraphicsExtractor graphics, RenderEvent event) {
         float partialTicks = event.getDeltaTracker().getGameTimeDeltaPartialTick(false);
         WorldToScreen.ScreenPos pos = WorldToScreen.projectEntity(target, partialTicks);
         if (pos == null)
@@ -76,13 +98,37 @@ public class TargetHud extends AbstractModule {
         }
 
         double distance = mc.player.distanceTo(target);
-        BlurRenderer.draw(event.getGuiGraphicsExtractor(),  x, y, width, height,10);
-        GuiGraphicsUtils.drawBackground(event.getGuiGraphicsExtractor(), x, y, width, height);
-        drawText(event.getGuiGraphicsExtractor(), x, y, name, health, maxHealth, armor, armorToughness, distance,
+    BlurRenderer.draw(graphics, x, y, width, height,10);
+    GuiGraphicsUtils.drawBackground(graphics, x, y, width, height);
+    drawText(graphics, x, y, name, health, maxHealth, armor, armorToughness, distance,
                 BadHeadshot.isBadHeadshotEntity(target));
 
-        GuiGraphicsUtils.drawHealthBar(event.getGuiGraphicsExtractor(), x + 8, y + 32, width - 16, 8, percent);
+    GuiGraphicsUtils.drawHealthBar(graphics, x + 8, y + 32, width - 16, 8, percent);
 //        GuiGraphicsUtils.drawArmorBar(event.getGuiGraphicsExtractor(), x + 8, y + 50, width - 16, 8, armorPercent);
+    }
+
+    private void renderDamageEngine(GuiGraphicsExtractor graphics) {
+    int width = 190;
+    int height = 58;
+    int x = Math.clamp((int) (graphics.guiWidth() * posX.getValue().doubleValue()), 0,
+        Math.max(0, graphics.guiWidth() - width));
+    int y = Math.clamp((int) (graphics.guiHeight() * posY.getValue().doubleValue()), 0,
+        Math.max(0, graphics.guiHeight() - height));
+    float health = Math.max(0.0F, target.getHealth());
+    float maxHealth = Math.max(1.0F, target.getMaxHealth());
+    float percent = Math.max(0.0F, Math.min(1.0F, health / maxHealth));
+    double targetDistance = mc.player.distanceTo(target);
+
+    BlurRenderer.draw(graphics, x, y, width, height, 10);
+    GuiGraphicsUtils.drawBackground(graphics, x, y, width, height);
+    String name = target.getName().getString();
+    String hpText = String.format("%.1f / %.1f HP", health, maxHealth);
+    String distanceText = String.format("%.1f m", targetDistance);
+    int nameColor = BadHeadshot.isBadHeadshotEntity(target) ? 0xFFFF5555 : 0xFFFFFFFF;
+    graphics.text(mc.font, name, x + 8, y + 6, nameColor, true);
+    graphics.text(mc.font, hpText, x + 8, y + 18, 0xFFFF5555, true);
+    graphics.text(mc.font, distanceText, x + width - mc.font.width(distanceText) - 8, y + 6, 0xFFAAAAAA, true);
+    GuiGraphicsUtils.drawHealthBar(graphics, x + 8, y + 34, width - 16, 10, percent);
     }
 
 

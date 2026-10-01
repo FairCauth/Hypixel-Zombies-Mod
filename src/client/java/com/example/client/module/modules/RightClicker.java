@@ -3,11 +3,9 @@ package com.example.client.module.modules;
 import com.darkmagician6.eventapi.EventTarget;
 import com.example.client.data.ZombiesGuns;
 import com.example.client.events.RenderEvent;
-import com.example.client.language.Language;
 import com.example.client.module.AbstractModule;
 import com.example.client.module.annotation.ModuleInfo;
 import com.example.client.setting.annotation.SettingInfo;
-import com.example.client.setting.settings.BooleanSetting;
 import com.example.client.setting.settings.ModeSetting;
 import com.example.client.setting.settings.NumberSetting;
 import com.example.client.mixin.MouseHandlerInvoker;
@@ -33,6 +31,7 @@ import java.util.Arrays;
 
 @ModuleInfo(name = "module.right_clicker", enable = true)
 public class RightClicker extends AbstractModule {
+    private static final long HOLD_DELAY_NANOS = 200_000_000L;
 
     @SettingInfo(name = "setting.click_mode")
     private final ModeSetting mode = new ModeSetting("Simulate", Arrays.asList("Simulate", "Key"));
@@ -41,27 +40,57 @@ public class RightClicker extends AbstractModule {
     @SettingInfo(name = "setting.min_cps")
     private final NumberSetting minCPS = new NumberSetting(11, 1.0, 20.0, "#");
     @SettingInfo(name = "setting.only_guns")
-    private final BooleanSetting onlyGuns = new BooleanSetting(true);
-    public TimeUtils rightClickTimer = new TimeUtils();
+    private final ModeSetting filterMode = new ModeSetting("Guns", Arrays.asList("Any", "Guns", "Tools"));
+    private long holdStartNanos;
+    private long nextClickNanos;
 
     public RightClicker() {
-        registerSetting(mode, maxCPS, minCPS, onlyGuns);
+        registerSetting(mode, maxCPS, minCPS, filterMode);
 
     }
 
     @EventTarget
     public void onClick(RenderEvent event) {
-        if (!mc.options.keyUse.isDown()) return;
+        if (!mc.options.keyUse.isDown() || mc.player == null || mc.level == null || mc.gui.screen() != null) {
+            resetClickState();
+            return;
+        }
+
+        long now = System.nanoTime();
+        if (holdStartNanos == 0) {
+            holdStartNanos = now;
+            nextClickNanos = now + HOLD_DELAY_NANOS;
+            return;
+        }
+        if (now - holdStartNanos < HOLD_DELAY_NANOS) return;
+
         if (shouldSkipInteraction()) {
+            nextClickNanos = 0;
             return;
         }
         ItemStack current = mc.player.getMainHandItem();
 
-        if(onlyGuns.getValue() && !ZombiesGuns.isZombiesGun(current)) {
+        if (filterMode.is("Guns") && !ZombiesGuns.isZombiesGun(current)) {
+            nextClickNanos = 0;
             return;
         }
-        long delay = TimeUtils.randomClickDelay(minCPS.getValue().intValue(), maxCPS.getValue().intValue());
-        if (rightClickTimer.hasTimeElapsed(delay, true)) {
+        if (filterMode.is("Tools")) {
+            net.minecraft.resources.Identifier model =
+                    current.get(net.minecraft.core.component.DataComponents.ITEM_MODEL);
+            if (model == null) {
+                nextClickNanos = 0;
+                return;
+            }
+            String path = model.getPath();
+            if (!path.contains("hoe") && !path.contains("shovel")
+                    && !path.contains("pickaxe") && !path.equals("shears")
+                    && !path.equals("flint_and_steel")) {
+                nextClickNanos = 0;
+                return;
+            }
+        }
+        if (nextClickNanos == 0) nextClickNanos = now;
+        if (now >= nextClickNanos) {
             if (mode.is("Simulate")) {
                 ((MouseHandlerInvoker) (Object) mc.mouseHandler).zombiesmod$onButton(
                         mc.getWindow().handle(),
@@ -70,8 +99,22 @@ public class RightClicker extends AbstractModule {
             } else {
                 KeyMapping.click(mc.options.keyUse.getDefaultKey());
             }
+            long interval = TimeUtils.randomClickDelayNanos(minCPS.getValue().intValue(), maxCPS.getValue().intValue());
+            nextClickNanos += interval;
+            if (nextClickNanos <= now) nextClickNanos = now + interval;
         }
     }
+
+    @Override
+    protected void onDisable() {
+        resetClickState();
+    }
+
+    private void resetClickState() {
+        holdStartNanos = 0;
+        nextClickNanos = 0;
+    }
+
     private boolean shouldSkipInteraction() {
         if (mc.player == null || mc.level == null) {
             return true;
@@ -87,7 +130,8 @@ public class RightClicker extends AbstractModule {
 
         switch (mc.hitResult.getType()) {
             case BLOCK -> {
-                BlockHitResult blockHit = (BlockHitResult) mc.hitResult;
+                if (!(mc.hitResult instanceof BlockHitResult blockHit)) return false;
+                if (mc.level == null) return false;
                 BlockPos pos = blockHit.getBlockPos();
                 BlockState state = mc.level.getBlockState(pos);
                 Block block = state.getBlock();
@@ -96,7 +140,7 @@ public class RightClicker extends AbstractModule {
             }
 
             case ENTITY -> {
-                EntityHitResult entityHit = (EntityHitResult) mc.hitResult;
+                if (!(mc.hitResult instanceof EntityHitResult entityHit)) return false;
                 Entity entity = entityHit.getEntity();
 
                 return isInteractableEntity(entity);

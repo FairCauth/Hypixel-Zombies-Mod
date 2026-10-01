@@ -7,6 +7,7 @@ import com.example.client.module.modules.SidebarModification;
 import com.example.client.utils.PlayerUtils;
 import com.example.client.utils.ScoreboardUtils;
 import com.example.client.utils.ZombiesUtils;
+import com.example.client.utils.render.SidebarLatencyRenderer;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.Hud;
@@ -32,7 +33,6 @@ import java.util.List;
 
 @Mixin(Hud.class)
 public class SidebarHealthMixin {
-        private static final int zombiesmod$sidebarWidth = 128;
         private static final int zombiesmod$sidebarPadding = 3;
 
         @Inject(
@@ -40,35 +40,53 @@ public class SidebarHealthMixin {
                         at = @At("HEAD"),
                         cancellable = true
         )
-        private void zombiesmod$renderFixedSidebar(
+        private void zombiesmod$renderSidebar(
                         GuiGraphicsExtractor graphics,
                         Objective objective,
                         CallbackInfo ci
         ) {
                 if (!SidebarModification.isActive() || !zombiesmod$isZombiesMode()) return;
 
-                Font font = Minecraft.getInstance().font;
+                Minecraft minecraft = Minecraft.getInstance();
+                Font font = minecraft.font;
                 List<SidebarEntry> entries = zombiesmod$sidebarEntries();
-                List<Component> renderedLines = new ArrayList<>();
+                Component title = objective.getDisplayName();
+                int contentWidth = Math.max(1, font.width(title));
+                int renderedLineCount = entries.size();
                 for (SidebarEntry entry : entries) {
-                        renderedLines.add(entry.name());
-                        if (entry.info() != null) renderedLines.add(entry.info());
+                        // Extra teammate details fit within the original scoreboard's width.
+                        contentWidth = Math.max(contentWidth, font.width(entry.name()));
+                        if (entry.info() != null) renderedLineCount++;
                 }
 
-                Component title = objective.getDisplayName();
-                int contentWidth = zombiesmod$sidebarWidth - zombiesmod$sidebarPadding * 2;
-
-                int screenWidth = Minecraft.getInstance().getWindow().getGuiScaledWidth();
-                int screenHeight = Minecraft.getInstance().getWindow().getGuiScaledHeight();
+                int screenWidth = minecraft.getWindow().getGuiScaledWidth();
+                int screenHeight = minecraft.getWindow().getGuiScaledHeight();
+                contentWidth = Math.min(contentWidth, Math.max(1, screenWidth - zombiesmod$sidebarPadding * 2));
+                int sidebarWidth = contentWidth + zombiesmod$sidebarPadding * 2;
                 int lineHeight = font.lineHeight;
-                int totalHeight = lineHeight * (renderedLines.size() + 1);
-                int left = screenWidth - zombiesmod$sidebarWidth;
-                int top = screenHeight / 2 - totalHeight / 2;
+                // Reserve one line each for the title and the independent latency footer.
+                int totalHeight = lineHeight * (renderedLineCount + 2);
+                int left = screenWidth - sidebarWidth;
+                // Keep the vanilla title anchor, including blank scoreboard rows.
+                // Added teammate details and the latency footer only extend the panel downward.
+                int originalLineCount = (int) objective.getScoreboard().listPlayerScores(objective).stream()
+                                .filter(entry -> !entry.isHidden())
+                                .limit(15)
+                                .count();
+                int originalHeight = lineHeight * originalLineCount;
+                int top = screenHeight / 2 + originalHeight / 3 - originalHeight - lineHeight;
 
                 graphics.pose().pushMatrix();
                 graphics.pose().translate(left, top);
+                // Cancelling vanilla rendering also skips its title and body backgrounds.
+                int backgroundLeft = zombiesmod$sidebarPadding - 2;
+                int backgroundRight = sidebarWidth - zombiesmod$sidebarPadding + 2;
+                graphics.fill(backgroundLeft, -1, backgroundRight, lineHeight - 1,
+                                minecraft.options.getBackgroundColor(0.4F));
+                graphics.fill(backgroundLeft, lineHeight - 1, backgroundRight, totalHeight,
+                                minecraft.options.getBackgroundColor(0.3F));
                 float titleScale = zombiesmod$lineScale(font, title, 0, contentWidth);
-                int titleX = (zombiesmod$sidebarWidth - Math.round(font.width(title) * titleScale)) / 2;
+                int titleX = (sidebarWidth - Math.round(font.width(title) * titleScale)) / 2;
                 zombiesmod$drawScaledText(graphics, font, title, titleX, 0, titleScale);
 
                 int y = lineHeight;
@@ -88,6 +106,7 @@ public class SidebarHealthMixin {
                                 y += lineHeight;
                         }
                 }
+                SidebarLatencyRenderer.render(graphics, font, zombiesmod$sidebarPadding, y, contentWidth);
                 graphics.pose().popMatrix();
                 ci.cancel();
         }
@@ -105,11 +124,8 @@ public class SidebarHealthMixin {
                         }
 
                         Player player = teammate.getRenderEntity();
-                        Component nameLine = teammate.getStatusText().isBlank()
-                                        ? Component.literal(playerName).append(zombiesmod$goldDecoration(teammate))
-                                        : line.component();
                         entries.add(new SidebarEntry(
-                                        nameLine,
+                                        line.component(),
                                         zombiesmod$playerInfo(teammate, player, line.component(), teammate.getName()),
                                         player
                         ));
@@ -146,11 +162,6 @@ public class SidebarHealthMixin {
                                 .append(zombiesmod$killsDecoration(original, playerName))
                                 .append(Component.literal(blockingText).withStyle(ChatFormatting.YELLOW))
                                 .append(Component.literal(shiftText).withStyle(ChatFormatting.AQUA));
-        }
-
-        private static Component zombiesmod$goldDecoration(TeammateInfo teammate) {
-                return Component.literal(": " + String.format("%,d", teammate.getGold()))
-                                .withStyle(ChatFormatting.GOLD);
         }
 
         private static float zombiesmod$lineScale(Font font, Component line, int extraWidth, int contentWidth) {

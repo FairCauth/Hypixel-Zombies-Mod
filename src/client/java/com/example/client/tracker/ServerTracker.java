@@ -136,9 +136,10 @@ public class ServerTracker implements IMinecraft {
                 if (lastRound >= 1 && lastRoundStartGold >= 0) {
                     long delta = myGold - lastRoundStartGold;
                     String sign = delta >= 0 ? "+" : "-";
-                    ChatUtils.print(Component.literal("Round " + lastRound).withStyle(ChatFormatting.RED)
-                            .append(Component.literal(" 金币 ").withStyle(ChatFormatting.YELLOW))
-                            .append(Component.literal(sign + String.format("%,d", Math.abs(delta))).withStyle(ChatFormatting.GOLD)));
+                            ChatUtils.print(GuiText.text("toast.round_gold",
+                                Component.literal(String.valueOf(lastRound)).withStyle(ChatFormatting.RED),
+                                Component.literal(sign + String.format("%,d", Math.abs(delta))).withStyle(ChatFormatting.GOLD))
+                                .copy().withStyle(ChatFormatting.RED));
                 }
                 lastRoundStartGold = myGold;
             }
@@ -159,6 +160,18 @@ public class ServerTracker implements IMinecraft {
             }
 
             roundTime = System.currentTimeMillis();
+            if (notification.isEnable() && Notification.aaRoundChat.getValue()
+                    && ZombiesUtils.getMap() == ZombiesMap.ALIEN_ARCADIUM) {
+                ZombiesSpawnTable.SpawnInfo info = ZombiesSpawnTable.get(currentRound);
+                if (info != null) {
+                    Component spawnMessage = GuiText.text("toast.round", currentRound).copy()
+                            .append(Component.literal(" "))
+                            .append(GuiText.text("toast.monsters", info.monsters()))
+                            .append(Component.literal(" "))
+                            .append(GuiText.text("toast.location", info.location()));
+                    mc.player.connection.sendChat(spawnMessage.getString());
+                }
+            }
 //            debug("回合开始 " + currentRound);
 
             if(notification.isEnable() && Notification.roundSuggest.getValue()) {
@@ -195,6 +208,7 @@ public class ServerTracker implements IMinecraft {
         if(probableMaxAmmo) {
             probableMaxAmmo = false;
             powerup.onActivationSound(PowerupPredictor.Type.MAX);
+            GameStatTracker.announceCollected(PowerupPredictor.Type.MAX);
         }
         if(sound && probableShopping) {
             powerup.onActivationSound(PowerupPredictor.Type.SS);
@@ -322,7 +336,7 @@ public class ServerTracker implements IMinecraft {
                     return;
 
                 int round = Integer.parseInt(matcher.group());
-                debug("Round " + round);
+                debug(GuiText.textString("debug.round", round));
                 roundStartTitle = true;
                 // 只在"进入第 1 回合（新一局）"时清道具预测。
                 // 不用 round<currentRound：带数字的非回合标题（道具/特效等）会误触发清空。
@@ -424,7 +438,7 @@ public class ServerTracker implements IMinecraft {
         ShotRecord shot = findMatchingShot(gold, critical);
 
         if (shot == null) {
-            debug("HIT but no matching shot | gold=" + gold + " | critical=" + critical);
+            debug(GuiText.textString("debug.hit_no_matching_shot", gold, critical));
             return null;
         }
 

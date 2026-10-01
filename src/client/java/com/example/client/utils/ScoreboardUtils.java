@@ -226,7 +226,7 @@ public class ScoreboardUtils implements IMinecraft {
     private static Component getLineComponent(Scoreboard scoreboard, PlayerScoreEntry entry) {
         PlayerTeam team = scoreboard.getPlayersTeam(entry.owner());
         if (team != null) {
-            return PlayerTeam.formatNameForTeam(team, Component.literal(entry.owner()));
+            return PlayerTeam.formatNameForTeam(team, entry.ownerName());
         }
 
         return entry.ownerName();

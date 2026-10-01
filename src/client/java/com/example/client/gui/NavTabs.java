@@ -17,7 +17,7 @@ import net.minecraft.network.chat.Component;
 public final class NavTabs {
     private NavTabs() {}
 
-    private static final String[] LABEL_KEYS = {"features", "guns_config", "name_protect", "stats_query"};
+    private static final String[] LABEL_KEYS = {"gui.features", "gui.guns_config", "gui.name_protect", "gui.stats_query"};
 
     public static final int Y = 22;
     public static final int H = 20;

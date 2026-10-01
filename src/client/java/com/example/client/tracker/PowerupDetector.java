@@ -1,5 +1,6 @@
 package com.example.client.tracker;
 
+import com.example.ZombiesMod;
 import com.example.client.data.PowerupPredictor;
 import com.example.client.utils.IMinecraft;
 import net.minecraft.network.chat.Component;
@@ -31,12 +32,18 @@ public final class PowerupDetector implements IMinecraft {
     private static final int SS = 0xAA00AA;
 
     private static final long DESPAWN_TIMEOUT_MS = 55000L;
+    private static final long DROP_ANNOUNCE_COOLDOWN_MS = 2000L;
+    private static final int PRIME_WARMUP_TICKS = 60;
 
     private final PowerupPredictor predictor = new PowerupPredictor();
 
     private boolean primed = false;
+    private int primeWarmupTicks;
     private final Set<Integer> excluded = new HashSet<>(); // 初始/已判定为非道具的盔甲架
     private final Map<Integer, Pending> pending = new HashMap<>();
+    private final Map<PowerupPredictor.Type, Long> lastAnnouncedDropMs = new HashMap<>();
+    private Integer announcedDoubleGoldRound;
+    private final Map<Integer, Integer> loggedColors = new HashMap<>();
 
     public PowerupPredictor getPredictor() {
         return predictor;
@@ -53,8 +60,12 @@ public final class PowerupDetector implements IMinecraft {
     /** 进入/离开一局时清空。 */
     public void reset() {
         primed = false;
+        primeWarmupTicks = PRIME_WARMUP_TICKS;
         excluded.clear();
         pending.clear();
+        lastAnnouncedDropMs.clear();
+        announcedDoubleGoldRound = null;
+        loggedColors.clear();
         predictor.reset();
     }
 
@@ -71,6 +82,12 @@ public final class PowerupDetector implements IMinecraft {
 
             int id = stand.getId();
             seen.add(id);
+            logStandIfChanged(stand, name);
+
+            if (!primed && primeWarmupTicks > 0) {
+                excluded.add(id);
+                continue;
+            }
 
             // 首次扫描：现有盔甲架全排除（地图静态标签）
             if (!primed) {
@@ -85,6 +102,19 @@ public final class PowerupDetector implements IMinecraft {
             if (p == null) {
                 if (rgb == WHITE) continue;            // 正在闪白，等显原色再分类，别误排除
                 PowerupPredictor.Type type = colorToType(rgb);
+                if (isDoubleGold(name)) {
+                    if (!Integer.valueOf(ServerTracker.currentRound)
+                            .equals(announcedDoubleGoldRound)) {
+                        announcedDoubleGoldRound = ServerTracker.currentRound;
+                        GameStatTracker.announceDrop(GameStat.DOUBLE_GOLD);
+                    }
+                    excluded.add(id);
+                    continue;
+                }
+                if (!isPowerupName(name, type)) {
+                    excluded.add(id);
+                    continue;
+                }
                 if (type == null) {
                     excluded.add(id);                  // 非道具色 → 永久排除该实体
                     continue;
@@ -95,14 +125,26 @@ public final class PowerupDetector implements IMinecraft {
                 p.dropElapsedMs = now - ServerTracker.roundTime;
                 p.lastSeenMs = now;
                 pending.put(id, p);
+                long lastAnnouncedAt = lastAnnouncedDropMs.getOrDefault(type, 0L);
+                if (now - lastAnnouncedAt >= DROP_ANNOUNCE_COOLDOWN_MS) {
+                    lastAnnouncedDropMs.put(type, now);
+                    GameStatTracker.announceDrop(type);
+                }
             } else {
                 p.lastSeenMs = now;
                 if (rgb == WHITE) {                    // 闪白 = 真道具自然过期 → 确认
+                    if (!p.confirmed) {
+                        GameStatTracker.announceExpiring(p.type);
+                    }
                     confirm(p);
                 }
             }
         }
 
+        if (primeWarmupTicks > 0) {
+            primeWarmupTicks--;
+            return;
+        }
         primed = true;
 
         // 消失/超时的 pending：confirmed 的已喂过，没确认的当误判丢弃
@@ -134,6 +176,22 @@ public final class PowerupDetector implements IMinecraft {
         }
     }
 
+    private void logStandIfChanged(ArmorStand stand, Component name) {
+        int color = firstColor(name);
+        Integer previousColor = loggedColors.put(stand.getId(), color);
+        if (previousColor != null && previousColor == color) return;
+
+        ZombiesMod.LOGGER.info("[PowerupDetector] armorStand id={} tick={} pos={},{},{} color={} visible={} name='{}'",
+            stand.getId(),
+            stand.tickCount,
+            String.format("%.2f", stand.getX()),
+            String.format("%.2f", stand.getY()),
+            String.format("%.2f", stand.getZ()),
+            color == -1 ? "none" : String.format("#%06X", color),
+            stand.isCustomNameVisible(),
+            name.getString());
+    }
+
     private void confirm(Pending p) {
         if (p.confirmed) return;
         p.confirmed = true;
@@ -146,6 +204,22 @@ public final class PowerupDetector implements IMinecraft {
             case MAX -> PowerupPredictor.Type.MAX;
             case SS -> PowerupPredictor.Type.SS;
             default -> null;
+        };
+    }
+
+    private static boolean isDoubleGold(Component name) {
+        String text = name.getString();
+        return text.contains("双倍金钱") || text.toLowerCase(java.util.Locale.ROOT).contains("double gold");
+    }
+
+    private static boolean isPowerupName(Component name, PowerupPredictor.Type type) {
+        if (type == null) return false;
+        String text = name.getString().toLowerCase(java.util.Locale.ROOT);
+        return switch (type) {
+            case INSTA -> text.contains("瞬间击杀") || text.contains("insta kill");
+                case MAX -> text.contains("弹药满载") || text.contains("最大弹药")
+                    || text.contains("max ammo") || text.contains("ammo refill");
+            case SS -> text.contains("购物狂潮") || text.contains("shopping spree");
         };
     }
 

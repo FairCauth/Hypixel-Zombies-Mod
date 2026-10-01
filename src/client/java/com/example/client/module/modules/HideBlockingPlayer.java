@@ -11,6 +11,9 @@ import com.example.client.setting.settings.NumberSetting;
 public class HideBlockingPlayer extends AbstractModule {
     @SettingInfo(name = "setting.hide_overlap_expand")
     public static final NumberSetting fadeOverlapExpand = new NumberSetting(0.15d, 0, 1d,"#.0");
+
+    @SettingInfo(name = "setting.fade_range")
+    public static final NumberSetting fadeRange = new NumberSetting(5d, 0, 64d, "#.0");
 //    @SettingInfo(name = "setting.fade_player_alpha")
 //    public static final NumberSetting fadePlayerAlpha = new NumberSetting(100, 0, 255,"#");
     @SettingInfo(name = "setting.full_hide")
@@ -19,7 +22,7 @@ public class HideBlockingPlayer extends AbstractModule {
 
 
     public HideBlockingPlayer() {
-        registerSetting(fadeOverlapExpand, fullHide);
+        registerSetting(fadeOverlapExpand, fadeRange, fullHide);
 
     }
 }

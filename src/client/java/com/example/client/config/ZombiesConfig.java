@@ -5,6 +5,8 @@ import com.example.client.module.AbstractModule;
 import com.example.client.setting.Setting;
 import com.example.client.setting.SettingManager;
 import com.example.client.setting.settings.BooleanSetting;
+import com.example.client.setting.settings.HotbarSlotSetting;
+import com.example.client.setting.settings.KeyBindSetting;
 import com.example.client.setting.settings.ModeSetting;
 import com.example.client.setting.settings.NumberSetting;
 import com.google.gson.*;
@@ -112,19 +114,25 @@ public class ZombiesConfig {
             e.printStackTrace();
         }
     }
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings("rawtypes")
     private static void loadSettingValue(Setting setting, JsonElement value) {
         try {
+            if (setting instanceof HotbarSlotSetting hss) {
+                hss.setValue(hss.getJson(value));
+                return;
+            }
+            if (setting instanceof KeyBindSetting kbs) {
+                kbs.setValue(kbs.getJson(value));
+                return;
+            }
             if (setting instanceof BooleanSetting booleanSetting) {
                 booleanSetting.setValue(value.getAsBoolean());
                 return;
             }
-
             if (setting instanceof NumberSetting numberSetting) {
                 numberSetting.setValue(value.getAsDouble());
                 return;
             }
-
             if (setting instanceof ModeSetting modeSetting) {
                 modeSetting.setValue(value.getAsString());
             }
@@ -181,6 +189,21 @@ public class ZombiesConfig {
 
     private static void saveSettingValue(JsonObject settingsJson, String key, Setting<?> setting) {
         Object value = setting.getValue();
+
+        if (setting instanceof HotbarSlotSetting hss) {
+            JsonObject hssJson = new JsonObject();
+            hssJson.addProperty("active", hss.isActive());
+            hssJson.addProperty("key", hss.getValue());
+            settingsJson.add(key, hssJson);
+            return;
+        }
+
+        if (setting instanceof KeyBindSetting) {
+            if (value instanceof Number number) {
+                settingsJson.addProperty(key, number.intValue());
+            }
+            return;
+        }
 
         if (setting instanceof BooleanSetting) {
             settingsJson.addProperty(key, Boolean.TRUE.equals(value));

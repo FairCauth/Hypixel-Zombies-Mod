@@ -28,8 +28,12 @@ public class TimeUtils {
         lastMS = time;
     }
 
-    public static long randomClickDelay(final int minCPS, final int maxCPS) {
-        return (long) ((Math.random() * (1000d / minCPS - 1000d / maxCPS + 1)) + 1000d / maxCPS);
+    public static long randomClickDelayNanos(final int minCPS, final int maxCPS) {
+        int lowerCPS = Math.max(1, Math.min(minCPS, maxCPS));
+        int upperCPS = Math.max(1, Math.max(minCPS, maxCPS));
+        double shortestDelay = 1_000_000_000d / upperCPS;
+        double longestDelay = 1_000_000_000d / lowerCPS;
+        return Math.round(shortestDelay + Math.random() * (longestDelay - shortestDelay));
     }
 
     public void waitForAtLeast(long ms) {

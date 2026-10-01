@@ -24,7 +24,7 @@ public abstract class PauseScreenMixin extends Screen {
     private void addZombiesButton(CallbackInfo ci) {
         this.addRenderableWidget(
                 Button.builder(
-                        GuiText.text("zombies_mod"),
+                        GuiText.text("gui.zombies_mod"),
                         button -> {
                             if(ZombiesConfigScreen.instance == null)
                                 ZombiesConfigScreen.instance = new ZombiesConfigScreen((Screen) this);

@@ -4,10 +4,13 @@ import com.example.client.config.ZombiesConfig;
 import com.example.client.ZombiesModClient;
 import com.example.client.language.GuiText;
 import com.example.client.module.AbstractModule;
+import com.example.client.module.modules.TeammatesGlow;
 import com.example.client.setting.Setting;
 import com.example.client.setting.SettingManager;
 import com.example.client.setting.settings.BooleanSetting;
 import com.example.client.setting.settings.ButtonSetting;
+import com.example.client.setting.settings.HotbarSlotSetting;
+import com.example.client.setting.settings.KeyBindSetting;
 import com.example.client.setting.settings.ModeSetting;
 import com.example.client.setting.settings.NumberSetting;
 import com.example.client.utils.render.DoubleSliderButton;
@@ -22,6 +25,8 @@ import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.glfw.GLFW;
+
+import java.util.Locale;
 
 /**
  * 主配置界面：顶部 Tab(Features / Guns Config)+ 左模块列表(可搜索) + 右设置面板(选中模块的设置)。
@@ -40,8 +45,9 @@ public class ZombiesConfigScreen extends Screen {
     private AbstractModule selected = null;
     private String filter = "";
 
-    private boolean listeningForKey = false;       // 绑定"打开GUI"的键
-    private AbstractModule listeningModule = null; // 绑定某模块的开关键
+    private boolean listeningForKey = false;         // 绑定"打开GUI"的键
+    private AbstractModule listeningModule = null;   // 绑定某模块的开关键
+    private KeyBindSetting listeningKeybind = null;  // 绑定某 KeyBindSetting
     private Button guiBindButton;
 
     private static final int SIDE = 20;
@@ -57,7 +63,7 @@ public class ZombiesConfigScreen extends Screen {
     private int rightW;
 
     public ZombiesConfigScreen(Screen parent) {
-        super(GuiText.text("settings_title"));
+        super(GuiText.text("gui.settings_title"));
         this.parent = parent;
     }
 
@@ -68,8 +74,8 @@ public class ZombiesConfigScreen extends Screen {
         this.listeningModule = null;
 
         // ---- 搜索框 ----
-        this.searchBox = new EditBox(this.font, SIDE, SEARCH_Y, LIST_W, 18, GuiText.text("search"));
-        this.searchBox.setHint(GuiText.text("search"));
+        this.searchBox = new EditBox(this.font, SIDE, SEARCH_Y, LIST_W, 18, GuiText.text("gui.search"));
+        this.searchBox.setHint(GuiText.text("gui.search"));
         this.searchBox.setResponder(s -> {
             filter = s == null ? "" : s.toLowerCase();
             buildModuleList();
@@ -92,10 +98,10 @@ public class ZombiesConfigScreen extends Screen {
         // ---- 底部：Gui Bind + Done ----
         this.guiBindButton = this.addRenderableWidget(Button.builder(bindText(), b -> {
             this.listeningForKey = true;
-            b.setMessage(GuiText.text("gui_bind").copy().append(Component.literal("<...>").withStyle(ChatFormatting.YELLOW)));
+            b.setMessage(GuiText.text("gui.gui_bind").copy().append(Component.literal("<...>").withStyle(ChatFormatting.YELLOW)));
         }).bounds(SIDE, this.height - 26, 150, 20).build());
 
-        this.addRenderableWidget(Button.builder(GuiText.text("done"),
+        this.addRenderableWidget(Button.builder(GuiText.text("gui.done"),
                 b -> { ZombiesConfig.save(); onClose(); })
                 .bounds(this.width / 2 - 80, this.height - 26, 160, 20).build());
     }
@@ -134,23 +140,24 @@ public class ZombiesConfigScreen extends Screen {
         settingsPanel.clearContent();
 
         if (selected == null) {
-            settingsPanel.addScrollText(GuiText.textString("select_module"), 12, 12, 0xFFAAAAAA, false);
+            settingsPanel.addScrollText(GuiText.textString("gui.select_module"), 12, 12, 0xFFAAAAAA, false);
             settingsPanel.setContentHeight(40);
             return;
         }
 
         int sw = rightW - 24;
         int y = 8;
+        NumberSetting positionX = null;
 
         settingsPanel.addScrollText(selected.getName(), 12, y, 0xFFFFFFFF, true);
         y += 18;
 
         // 开关 + 键位
         settingsPanel.addScrollWidget(Button.builder(
-                boolText(GuiText.textString("enabled"), selected.isEnable()),
+                boolText(GuiText.textString("gui.enabled"), selected.isEnable()),
                 b -> {
                     selected.toggle();
-                    b.setMessage(boolText(GuiText.textString("enabled"), selected.isEnable()));
+                    b.setMessage(boolText(GuiText.textString("gui.enabled"), selected.isEnable()));
                     ZombiesConfig.save();
                     buildModuleList();
                 }
@@ -193,6 +200,32 @@ public class ZombiesConfigScreen extends Screen {
                             value -> { numberSetting.setValue(value); ZombiesConfig.save(); }
                     ), 12, y);
                     y += ITEM_H;
+                            if ("setting.x".equals(setting.getNameKey())) {
+                            positionX = numberSetting;
+                            } else if ("setting.y".equals(setting.getNameKey()) && positionX != null) {
+                            NumberSetting positionXSetting = positionX;
+                            NumberSetting positionY = numberSetting;
+                            NumberSetting scale = null;
+                            for (Setting<?> candidate : selected.getSettings()) {
+                                if (candidate instanceof NumberSetting number
+                                        && "setting.scale".equals(number.getNameKey())) {
+                                    scale = number;
+                                    break;
+                                }
+                            }
+                            NumberSetting hudScale = scale;
+                            boolean centerX = "module.lightning_rod_queue".equals(selected.getNameKey());
+                            int[] previewSize = positionPreviewSize(selected.getNameKey());
+                            int previewWidth = previewSize[0];
+                            int previewHeight = previewSize[1];
+                            settingsPanel.addScrollWidget(Button.builder(
+                                GuiText.text("gui.change_position"),
+                                button -> Minecraft.getInstance().gui.setScreen(
+                                    new PositionEditorScreen(this, positionXSetting, positionY, hudScale, centerX,
+                                            previewWidth, previewHeight)))
+                                .bounds(0, 0, sw, 20).build(), 12, y);
+                            y += ITEM_H;
+                            }
                 }
                 case ModeSetting modeSetting -> {
                     settingsPanel.addScrollWidget(Button.builder(
@@ -202,6 +235,39 @@ public class ZombiesConfigScreen extends Screen {
                                 button.setMessage(modeText(setting.getName(), nm));
                                 ZombiesConfig.save();
                                 buildSettings();
+                            }
+                    ).bounds(0, 0, sw, 20).build(), 12, y);
+                    y += ITEM_H;
+                }
+                case HotbarSlotSetting hotbarSlotSetting -> {
+                    final HotbarSlotSetting hss = hotbarSlotSetting;
+                    int toggleW = sw - 66;
+                    settingsPanel.addScrollWidget(Button.builder(
+                            boolText(setting.getName(), hss.isActive()),
+                            b -> {
+                                hss.toggleActive();
+                                b.setMessage(boolText(setting.getName(), hss.isActive()));
+                                ZombiesConfig.save();
+                            }
+                    ).bounds(0, 0, toggleW, 20).build(), 12, y);
+                    settingsPanel.addScrollWidget(Button.builder(
+                            hss.getValue() <= 0
+                                    ? GuiText.text("gui.none").copy().withStyle(ChatFormatting.GRAY)
+                                    : Component.literal(InputConstants.Type.KEYSYM.getOrCreate(hss.getValue()).getDisplayName().getString()).withStyle(ChatFormatting.AQUA),
+                            b -> {
+                                listeningKeybind = hss;
+                                b.setMessage(Component.literal("<...>").withStyle(ChatFormatting.YELLOW));
+                            }
+                    ).bounds(0, 0, 60, 20).build(), 12 + toggleW + 6, y);
+                    y += ITEM_H;
+                }
+                case KeyBindSetting keyBindSetting -> {
+                    final KeyBindSetting kbs = keyBindSetting;
+                    settingsPanel.addScrollWidget(Button.builder(
+                            keybindText(setting.getName(), kbs.getValue()),
+                            b -> {
+                                listeningKeybind = kbs;
+                                b.setMessage(Component.literal(setting.getName() + ": ").append(Component.literal("<...>").withStyle(ChatFormatting.YELLOW)));
                             }
                     ).bounds(0, 0, sw, 20).build(), 12, y);
                     y += ITEM_H;
@@ -219,6 +285,17 @@ public class ZombiesConfigScreen extends Screen {
 
         settingsPanel.setContentHeight(y + 10);
         settingsPanel.setScrollOffset(off);
+    }
+
+    private static int[] positionPreviewSize(String moduleKey) {
+        return switch (moduleKey) {
+            case "module.target_hud" -> new int[]{190, 58};
+            case "module.lightning_rod_queue" -> new int[]{113, 34};
+            case "module.powerup_predictor" -> new int[]{250, 58};
+            case "module.teammates_glow" -> new int[]{TeammatesGlow.getHudWidth(), TeammatesGlow.getHudHeight()};
+            case "module.wave_display" -> new int[]{260, 190};
+            default -> new int[]{180, 42};
+        };
     }
 
     @Override
@@ -240,6 +317,14 @@ public class ZombiesConfigScreen extends Screen {
             buildSettings();
             return true;
         }
+        if (this.listeningKeybind != null) {
+            int key = event.key();
+            this.listeningKeybind.setValue(key == GLFW.GLFW_KEY_ESCAPE ? 0 : key);
+            this.listeningKeybind = null;
+            ZombiesConfig.save();
+            buildSettings();
+            return true;
+        }
         return super.keyPressed(event);
     }
 
@@ -256,15 +341,15 @@ public class ZombiesConfigScreen extends Screen {
 
     private static Component bindText() {
         if (ZombiesModClient.guiKey == 0) {
-            return GuiText.text("gui_bind").copy().append(GuiText.text("none").copy().withStyle(ChatFormatting.GRAY));
+            return GuiText.text("gui.gui_bind").copy().append(GuiText.text("gui.none").copy().withStyle(ChatFormatting.GRAY));
         }
         String keyName = InputConstants.Type.KEYSYM.getOrCreate(ZombiesModClient.guiKey).getDisplayName().getString();
-        return GuiText.text("gui_bind").copy().append(Component.literal(keyName).withStyle(ChatFormatting.AQUA));
+        return GuiText.text("gui.gui_bind").copy().append(Component.literal(keyName).withStyle(ChatFormatting.AQUA));
     }
 
     private static Component moduleKeyText(AbstractModule module) {
         int key = module.getKey();
-        if (key <= 0) return GuiText.text("none").copy().withStyle(ChatFormatting.GRAY);
+        if (key <= 0) return GuiText.text("gui.none").copy().withStyle(ChatFormatting.GRAY);
         String keyName = InputConstants.Type.KEYSYM.getOrCreate(key).getDisplayName().getString();
         return Component.literal(keyName).withStyle(ChatFormatting.AQUA);
     }
@@ -279,7 +364,7 @@ public class ZombiesConfigScreen extends Screen {
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
         super.extractRenderState(graphics, mouseX, mouseY, delta);
-        Component title = GuiText.text("zombies_mod");
+        Component title = GuiText.text("gui.zombies_mod");
         graphics.text(this.font, title,
             this.width / 2 - this.font.width(title) / 2, 8, 0xFFFFFFFF, true);
         NavTabs.draw(graphics, this.font, this.width, 0);
@@ -292,12 +377,19 @@ public class ZombiesConfigScreen extends Screen {
 
     private static Component boolText(String name, boolean value) {
         return Component.literal(name + ": ")
-                .append(GuiText.text(value ? "on" : "off").copy()
+                .append(GuiText.text(value ? "gui.on" : "gui.off").copy()
                         .withStyle(value ? ChatFormatting.GREEN : ChatFormatting.RED));
+    }
+
+    private static Component keybindText(String name, int key) {
+        if (key <= 0) return Component.literal(name + ": ").append(GuiText.text("gui.none").copy().withStyle(ChatFormatting.GRAY));
+        String keyName = InputConstants.Type.KEYSYM.getOrCreate(key).getDisplayName().getString();
+        return Component.literal(name + ": ").append(Component.literal(keyName).withStyle(ChatFormatting.AQUA));
     }
 
     private static Component modeText(String name, Object value) {
         return Component.literal(name + ": ")
-                .append(Component.literal(GuiText.mode(String.valueOf(value))).withStyle(ChatFormatting.AQUA));
+                .append(GuiText.text("gui." + String.valueOf(value).toLowerCase(Locale.ROOT)).copy()
+                        .withStyle(ChatFormatting.AQUA));
     }
 }

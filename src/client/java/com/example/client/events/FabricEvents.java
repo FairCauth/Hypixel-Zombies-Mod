@@ -4,6 +4,7 @@ import com.darkmagician6.eventapi.EventManager;
 import com.example.client.ZombiesModClient;
 import com.example.client.tracker.GameStat;
 import com.example.client.tracker.GameStatTracker;
+import com.example.client.tracker.LatencyTracker;
 import com.example.client.utils.IMinecraft;
 import com.example.client.utils.PlayerUtils;
 import com.example.client.utils.record.HitResult;
@@ -43,6 +44,7 @@ public class FabricEvents implements IMinecraft {
             EventManager.call(new EntityLoadEvent(entity));
         });
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            LatencyTracker.tick();
             if (mc.player == null || mc.level == null) {
                 return;
             }
