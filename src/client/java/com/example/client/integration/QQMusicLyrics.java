@@ -25,13 +25,23 @@ final class QQMusicLyrics implements AutoCloseable {
     private static final Pattern NON_LYRIC_TEXT = Pattern.compile("[^\\p{L}\\p{M}\\p{N}]+");
     // QQ's text control is sampled separately at 2 Hz; only adjacent lines get this grace period.
     private static final double NATIVE_BOUNDARY_GRACE = 1;
+    private static final double DURATION_TOLERANCE = 2;
     record Line(double seconds, String text, List<IslandLiveData.WordCue> wordCues) {
         Line(double seconds, String text) { this(seconds, text, List.of()); }
     }
     record Request(String title, String artist, long duration) {
         static Request of(IslandLiveData.Music music) {
-            return music == null || music.duration() <= 0 || music.artist().isBlank() ? null
+            return music == null || !Double.isFinite(music.duration()) || music.duration() <= 0 || music.artist().isBlank() ? null
                     : new Request(music.title(), music.artist(), Math.round(music.duration()));
+        }
+
+        boolean sameTrack(Request other) {
+            return other != null && title.equals(other.title) && artist.equals(other.artist)
+                    && Math.abs((double) duration - other.duration) <= DURATION_TOLERANCE;
+        }
+
+        boolean sameMetadata(IslandLiveData.Music music) {
+            return music != null && title.equals(music.title()) && artist.equals(music.artist());
         }
     }
     record Result(Request track, List<Line> lines) {}
@@ -51,6 +61,11 @@ final class QQMusicLyrics implements AutoCloseable {
 
     void update(IslandLiveData.Music music, boolean enabled) {
         Request next = enabled && !closed ? Request.of(music) : null;
+        Request previous = requested;
+        // Keep one fixed recording identity. Footer/media-session rounding must not invalidate
+        // an already validated LRC or accumulate into accepting a different recording.
+        if (enabled && !closed && previous != null && previous.sameMetadata(music)
+                && (next == null || previous.sameTrack(next))) next = previous;
         requested = next;
         Result current = result;
         if (current != null && !current.track().equals(next)) result = null;
@@ -63,7 +78,8 @@ final class QQMusicLyrics implements AutoCloseable {
     IslandLiveData.Lyric snapshot(IslandLiveData.Music music, IslandLiveData.Lyric nativeLine) {
         Result current = result;
         Request track = Request.of(music);
-        if (closed || track == null || current == null || !track.equals(requested) || !track.equals(current.track())) return null;
+        if (closed || track == null || current == null || !track.sameTrack(requested)
+                || !track.sameTrack(current.track()) || !current.track().equals(requested)) return null;
         return timedLineAt(current.lines(), music, nativeLine);
     }
 
@@ -118,7 +134,7 @@ final class QQMusicLyrics implements AutoCloseable {
             if (!sameMetadata(data.get("trackName").getAsString(), track.title())
                     || !sameMetadata(data.get("artistName").getAsString(), track.artist())
                     || !Double.isFinite(data.get("duration").getAsDouble())
-                    || Math.abs(data.get("duration").getAsDouble() - track.duration()) > 2
+                    || Math.abs(data.get("duration").getAsDouble() - track.duration()) > DURATION_TOLERANCE
                     || !data.has("syncedLyrics") || data.get("syncedLyrics").isJsonNull()) return null;
             List<Line> lines = parse(data.get("syncedLyrics").getAsString());
             return lines.isEmpty() ? null : new Result(track, lines);

@@ -55,11 +55,48 @@ public final class QQMusicLyricAlignmentCheck {
                 "enhanced timestamp selects the exact word boundary");
 
         checkWordTiming();
+        checkTimingRetention();
 
         checkContinuous();
         checkUnavailable();
         System.out.println("Lyric alignment passed: production Bridge, bilingual/combined labels, boundaries, repeats, seeks, word timing, terminal silence, Unicode, offset/repeated word schedules, invalid schedule fallback, highlight-only advance, pause and continuous highlights.");
         if (List.of(args).contains("render")) checkPixels();
+    }
+
+    private static void checkTimingRetention() throws Exception {
+        try (var bridge = fixture(12, "First phrase")) {
+            for (int duration : new int[]{59, 60, 61, 62}) {
+                var packet = packet(12, "First phrase");
+                packet.addProperty("duration", duration);
+                bridge.accept(packet.toString());
+                var music = bridge.snapshot().atTime(System.nanoTime());
+                var line = bridge.lyricSnapshot(music);
+                require(line != null && line.startSeconds() == 10 && line.sungFraction(music, .25) > 0,
+                        "one-second source rounding must not clear a validated recording's highlight: " + duration);
+            }
+            var absent = packet(12, "First phrase"); absent.addProperty("duration", 0);
+            bridge.accept(absent.toString());
+            // The Bridge's short dropout grace retains its already confirmed clock.
+            require(bridge.lyricSnapshot().sungFraction(bridge.snapshot(), .25) > 0, "brief source dropout retains the existing highlight");
+            var different = packet(12, "First phrase"); different.addProperty("duration", 63);
+            bridge.accept(different.toString());
+            require(bridge.lyricSnapshot().sungFraction(bridge.snapshot()) == -1,
+                    "duration tolerance stays anchored rather than drifting into a different recording");
+        }
+        try (var reader = new QQMusicLyrics(false)) {
+            reader.update(music(12), true);
+            set(reader, "result", new QQMusicLyrics.Result(QQMusicLyrics.Request.of(music(12)), LINES));
+            var unknown = new IslandLiveData.Music(TITLE, ARTIST, "", false, 0, 0, System.nanoTime(), false,
+                    "", null, false, false, false);
+            reader.update(unknown, true);
+            require(reader.snapshot(unknown) == null, "unknown playback time must not invent karaoke timing");
+            reader.update(music(12), true);
+            require(reader.snapshot(music(12)) != null, "restored time reuses the validated lyrics without a new network wait");
+            reader.update(new IslandLiveData.Music("Other song", ARTIST, "", false, 0, 0, System.nanoTime(), false,
+                    "", null, false, false, false), true);
+            reader.update(music(12), true);
+            require(reader.snapshot(music(12)) == null, "actual song change clears even when the new duration is unknown");
+        }
     }
 
     private static void checkWordTiming() {
@@ -198,7 +235,8 @@ public final class QQMusicLyricAlignmentCheck {
                 if (images[0].getRGB(x, y) != images[1].getRGB(x, y)) changed++;
             require(changed > 10, "production Bridge's " + nativeText + " draws a visible Skia highlight");
         }
-        System.out.println("Production Bridge-to-Skia highlights passed for bilingual and unmatched native text.");
+        checkSourceSwitchPixels(output);
+        System.out.println("Production Bridge-to-Skia highlights passed for bilingual, unmatched native text and source-duration rounding.");
         var wordLines = QQMusicLyrics.parse("[00:10]<00:10>First <00:11>phrase<00:12>\n[00:18]Next");
         BufferedImage[] advanced = new BufferedImage[2];
         for (int i = 0; i < 2; i++) {
@@ -221,6 +259,38 @@ public final class QQMusicLyricAlignmentCheck {
             if (advanced[0].getRGB(x, y) != advanced[1].getRGB(x, y)) changed++;
         require(changed > 15, "250ms advance visibly moves the real Skia word highlight");
         System.out.println("Enhanced word timing and highlight-only advance draw different Skia pixels at the same paused music position.");
+    }
+
+    private static void checkSourceSwitchPixels(Path output) throws Exception {
+        try (var bridge = fixture(12, "First phrase"); var island = new DynamicIsland()) {
+            BufferedImage before = null;
+            for (int duration : new int[]{60, 59, 61, 60}) {
+                var packet = packet(12, "First phrase");
+                packet.addProperty("duration", duration);
+                packet.addProperty("timelineSource", duration == 60 ? "qq-playback-footer" : "media-session");
+                bridge.accept(packet.toString());
+                var music = bridge.snapshot().atTime(System.nanoTime());
+                var line = bridge.lyricSnapshot(music);
+                require(line != null && line.sungFraction(music, .25) > .5, "real Bridge retains a timed sweep during source switches");
+                island.endTask("demo-main"); island.updateLiveTask("music", music, 10);
+                island.setMusicLyrics(true, line, .25);
+                for (int frame = 0; frame < 60; frame++) island.advance(1.0 / 60);
+                try (var surface = Surface.makeRasterN32Premul(1200, 180)) {
+                    var canvas = surface.getCanvas(); canvas.clear(0); canvas.scale(3, 3); island.draw(canvas, 200, 8);
+                    try (Image image = surface.makeImageSnapshot(); Data data = image.encodeToData()) {
+                        byte[] png = data.getBytes();
+                        Files.write(output.resolve("source-rounding-" + duration + ".png"), png);
+                        var pixels = ImageIO.read(new ByteArrayInputStream(png));
+                        if (before != null) {
+                            for (int y = 40; y < 110; y++) for (int x = 470; x < 700; x++)
+                                require(before.getRGB(x, y) == pixels.getRGB(x, y),
+                                        "source switches leave the existing Skia lyric highlight unchanged");
+                        }
+                        before = pixels;
+                    }
+                }
+            }
+        }
     }
 
     private static Object get(Object target, String name) throws Exception {
