@@ -29,6 +29,7 @@ public class ModuleManager {
         add(new HologramFix());
         add(new SkillShare());
         add(new LiquidGlassTest());
+        add(new DynamicIslandHud());
         add(new Hud());
         add(new EasyRevive(), new ReviveAura(), new EasyAmmo(), new KeepContainer(), new InvMove());
         add(new TOOCheck(), new AutoT());
@@ -40,6 +41,11 @@ public class ModuleManager {
         for (AbstractModule abstractModule : moduleList) {
             if(abstractModule.getNameKey().equals(name)) return abstractModule;
         }
+        return null;
+    }
+
+    public <T extends AbstractModule> T getModule(Class<T> type) {
+        for (AbstractModule module : moduleList) if (type.isInstance(module)) return type.cast(module);
         return null;
     }
 

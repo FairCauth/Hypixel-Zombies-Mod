@@ -1,9 +1,12 @@
 package com.example.client.mixin.skia;
 
+import com.example.client.gui.DynamicIslandDemoScreen;
+import com.example.client.module.modules.DynamicIslandHud;
 import com.example.client.skia.Skia;
 import com.example.client.skia.fbo.GameFramebuffer;
 import com.mojang.blaze3d.buffers.GpuBufferSlice;
 import net.minecraft.client.gui.render.GuiRenderer;
+import net.minecraft.client.Minecraft;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -32,8 +35,20 @@ public class GuiRendererMixin {
             at = @At("HEAD")
     )
     private void modid$renderSkiaBelowGui(GpuBufferSlice fogBuffer, CallbackInfo ci) {
-        if (!GameFramebuffer.isRenderingCustomGui()) {
+        if (!GameFramebuffer.isRenderingCustomGui()
+                && !(Minecraft.getInstance().screen instanceof DynamicIslandDemoScreen)) {
             Skia.tick();
+        }
+    }
+
+    /** Keep the island above open screens, sampling their finished pixels for glass. */
+    @Inject(method = "render(Lcom/mojang/blaze3d/buffers/GpuBufferSlice;)V", at = @At("TAIL"))
+    private void modid$renderIslandDemoAboveGui(GpuBufferSlice fogBuffer, CallbackInfo ci) {
+        if (GameFramebuffer.isRenderingCustomGui()) return;
+        if (Minecraft.getInstance().screen instanceof DynamicIslandDemoScreen) {
+            Skia.tick();
+        } else if (Minecraft.getInstance().screen != null) {
+            DynamicIslandHud.renderAboveScreen();
         }
     }
 }

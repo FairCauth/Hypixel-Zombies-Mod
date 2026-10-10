@@ -8,7 +8,7 @@ import io.github.humbleui.types.RRect;
 
 /** Shared visual primitives for compact liquid-glass HUDs. */
 public final class LiquidGlassUi {
-    private static final float EDGE_DISPERSION = 0.0014F;
+    private static final float EDGE_DISPERSION = LiquidGlassShader.DEFAULT_EDGE_DISPERSION;
     private static final float BACKGROUND_BLUR = 8F;
     private static final float EDGE_REFRACTION = 3.35F;
 
@@ -52,7 +52,7 @@ public final class LiquidGlassUi {
                 x + 0.6F, y + 0.6F,
                 width - 1.2F, height - 1.2F,
                 Math.max(0F, radius - 0.6F),
-                0x42FFFFFF,
+                0x28FFFFFF,
                 0.5F
         );
     }

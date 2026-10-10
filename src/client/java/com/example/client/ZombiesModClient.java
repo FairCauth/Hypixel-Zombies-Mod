@@ -11,6 +11,7 @@ import com.example.client.events.KeyInputEvent;
 import com.example.client.events.MouseInputEvent;
 import com.example.client.events.SkiaEvent;
 import com.example.client.gui.ZombiesConfigScreen;
+import com.example.client.gui.DynamicIslandDemoScreen;
 import com.example.client.module.AbstractModule;
 import com.example.client.module.ModuleManager;
 import com.example.client.notification.NotificationRenderer;
@@ -49,6 +50,10 @@ public class ZombiesModClient implements ClientModInitializer, IMinecraft {
 		);
 	}
 	public static void renderTest(CanvasStack canvasStack, GameFramebuffer customLayer) {
+		if (mc.screen instanceof DynamicIslandDemoScreen demo) {
+			demo.renderSkia(canvasStack);
+			return;
+		}
 		EventManager.call(new SkiaEvent(canvasStack, customLayer));
 	}
 	@EventTarget

@@ -228,6 +228,7 @@ public class ReviveAura extends AbstractModule {
 
     @EventTarget
     public void onRenderSkia(SkiaEvent event) {
+        if (DynamicIslandHud.routesRevive()) return;
         if (mc.player == null
                 || mc.level == null
                 || mc.screen != null
@@ -357,6 +358,14 @@ public class ReviveAura extends AbstractModule {
     }
 
     private record ReviveCandidate(Player player, TeammateInfo info) {
+    }
+
+    public com.example.client.skia.render.dynamicisland.IslandLiveData.Revive islandSnapshot() {
+        if (!isEnable() || mc.player == null || mc.level == null || !PlayerUtils.isInHypZombies() || ownedRevives.isEmpty()) return null;
+        long now = System.nanoTime();
+        return new com.example.client.skia.render.dynamicisland.IslandLiveData.Revive(ownedRevives.values().stream()
+                .map(revive -> new com.example.client.skia.render.dynamicisland.IslandLiveData.Rescue(
+                        revive.name, revive.confirmed, revive.remainingSeconds, revive.animatedProgress(now))).toList());
     }
 
     private static final class OwnedRevive {

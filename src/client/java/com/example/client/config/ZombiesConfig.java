@@ -5,6 +5,7 @@ import com.example.client.module.AbstractModule;
 import com.example.client.setting.Setting;
 import com.example.client.setting.SettingManager;
 import com.example.client.setting.settings.BooleanSetting;
+import com.example.client.setting.settings.KeySetting;
 import com.example.client.setting.settings.ModeSetting;
 import com.example.client.setting.settings.NumberSetting;
 import com.google.gson.*;
@@ -234,6 +235,10 @@ public class ZombiesConfig {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void loadSettingValue(Setting setting, JsonElement value) {
         try {
+            if (setting instanceof KeySetting keySetting) {
+                keySetting.setValue(keySetting.getJson(value));
+                return;
+            }
             if (setting instanceof BooleanSetting booleanSetting) {
                 booleanSetting.setValue(value.getAsBoolean());
                 return;
@@ -315,6 +320,11 @@ public class ZombiesConfig {
 
     private static void saveSettingValue(JsonObject settingsJson, String key, Setting<?> setting) {
         Object value = setting.getValue();
+
+        if (setting instanceof KeySetting keySetting) {
+            settingsJson.addProperty(key, keySetting.getValue());
+            return;
+        }
 
         if (setting instanceof BooleanSetting) {
             settingsJson.addProperty(key, Boolean.TRUE.equals(value));

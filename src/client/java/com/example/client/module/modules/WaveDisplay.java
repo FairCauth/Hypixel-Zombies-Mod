@@ -16,6 +16,7 @@ import com.example.client.skia.font.SkiaFont;
 import com.example.client.skia.font.SkiaFonts;
 import com.example.client.skia.render.LiquidGlassUi;
 import com.example.client.skia.render.RenderUtils;
+import com.example.client.skia.render.dynamicisland.IslandLiveData;
 import com.example.client.tracker.ServerTracker;
 import com.example.client.utils.PlayerUtils;
 import com.example.client.utils.ZombiesMap;
@@ -190,6 +191,25 @@ public class WaveDisplay extends AbstractModule {
 
         double toNext = ZombiesWaves.secondsToNextWave(waves, elapsed);
         drawPanel(event.getCanvasStack(), x, y, map, round, waves, current, elapsed, toNext, boss);
+    }
+
+    public IslandLiveData.Wave islandSnapshot() {
+        if (!isEnable() || mc.player == null || mc.level == null
+                || (onlyGame.getValue() && !PlayerUtils.isInHypZombies())) return null;
+        int round = ServerTracker.currentRound;
+        ZombiesMap map = ZombiesUtils.getMap();
+        int[] schedule = ZombiesWaves.getWaves(map, round);
+        if (round < 0 || map == null || map == ZombiesMap.NULL || schedule == null || schedule.length == 0) return null;
+        double elapsed = Math.max(0, (System.currentTimeMillis() - ServerTracker.roundTime) / 1000D);
+        int current = ZombiesWaves.currentWaveIndex(schedule, elapsed);
+        String boss = switch (ZombiesWaves.aaWaveBoss(map, round, Math.max(1, current + 1))) {
+            case GIANT -> "GIANT";
+            case OLD_ONE -> "OLD ONE";
+            case BOTH -> "GIANT + OLD ONE";
+            case NONE -> "";
+        };
+        return new IslandLiveData.Wave(round, mapName(map), current, java.util.Arrays.stream(schedule).boxed().toList(),
+                elapsed, ZombiesWaves.secondsToNextWave(schedule, elapsed), ZombiesWaves.isBossRound(map, round), boss);
     }
 
     private void drawPanel(

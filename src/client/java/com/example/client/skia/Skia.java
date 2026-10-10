@@ -143,6 +143,11 @@ public final class Skia implements IMinecraft {
     }
 
     public static void tick() {
+        tick(renderCallback);
+    }
+
+    /** Render a separate overlay pass without dispatching the normal HUD again. */
+    public static void tick(BiConsumer<CanvasStack, GameFramebuffer> callback) {
         if (!Skia.isInit()) return;
         if (mainGuiFramebuffer <= 0
                 || mainGuiFramebufferWidth != mc.getWindow().getWidth()
@@ -166,7 +171,7 @@ public final class Skia implements IMinecraft {
                 canvasStack.push();
                 float scale = (float) mc.getWindow().getGuiScale();
                 canvasStack.scale(scale, scale);
-                renderCallback.accept(canvasStack, customLayer);
+                callback.accept(canvasStack, customLayer);
 //                customLayer.render(canvasStack);
 //                EventManager.call(new RenderSkiaEvent(canvasStack));
             } finally {

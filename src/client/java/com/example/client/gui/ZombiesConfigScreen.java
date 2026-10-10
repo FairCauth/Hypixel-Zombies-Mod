@@ -7,6 +7,7 @@ import com.example.client.setting.Setting;
 import com.example.client.setting.SettingManager;
 import com.example.client.setting.settings.BooleanSetting;
 import com.example.client.setting.settings.ButtonSetting;
+import com.example.client.setting.settings.KeySetting;
 import com.example.client.setting.settings.ModeSetting;
 import com.example.client.setting.settings.NumberSetting;
 import com.example.client.utils.render.DoubleSliderButton;
@@ -44,6 +45,8 @@ public class ZombiesConfigScreen extends Screen {
 
     private boolean listeningForKey = false;       // 绑定"打开GUI"的键
     private AbstractModule listeningModule = null; // 绑定某模块的开关键
+    private KeySetting listeningSetting = null;
+    private Button guiBindButton;
 
     private static final int SIDE = 20;
     private static final int TABS_Y = 26;
@@ -67,6 +70,7 @@ public class ZombiesConfigScreen extends Screen {
         instance = this;
         this.listeningForKey = false;
         this.listeningModule = null;
+        this.listeningSetting = null;
 
         // ---- 搜索框 ----
         this.searchBox = new EditBox(this.font, SIDE, SEARCH_Y, LIST_W, 18, Component.literal("Search"));
@@ -93,8 +97,10 @@ public class ZombiesConfigScreen extends Screen {
         this.addRenderableWidget(this.settingsPanel);
 
         // ---- 底部：Gui Bind + Done ----
-        this.addRenderableWidget(Button.builder(bindText(), b -> {
+        this.guiBindButton = this.addRenderableWidget(Button.builder(bindText(), b -> {
+            clearBindingListeners();
             this.listeningForKey = true;
+            buildSettings();
             b.setMessage(Component.literal("Gui Bind: ").append(Component.literal("<…>").withStyle(ChatFormatting.YELLOW)));
         }).bounds(SIDE, this.height - 26, 150, 20).build());
 
@@ -107,6 +113,10 @@ public class ZombiesConfigScreen extends Screen {
     public boolean mouseClicked(@NotNull net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
         if (InputBindingUtils.isBindableMouseButton(event.button())) {
             int binding = InputBindingUtils.encodeMouseButton(event.button());
+            if (this.listeningSetting != null) {
+                finishSettingBinding(binding);
+                return true;
+            }
             if (this.listeningForKey) {
                 ZombiesModClient.guiKey = binding;
                 this.listeningForKey = false;
@@ -141,7 +151,7 @@ public class ZombiesConfigScreen extends Screen {
             AbstractModule m = module;
             listPanel.addScrollWidget(Button.builder(
                     nameText(module),
-                    b -> { selected = m; buildSettings(); buildModuleList(); }
+                    b -> { clearBindingListeners(); selected = m; buildSettings(); buildModuleList(); }
             ).bounds(0, 0, LIST_W - 22, 18).build(), 6, y + 2);
 
             y += ROW_H + 2;
@@ -179,10 +189,11 @@ public class ZombiesConfigScreen extends Screen {
         ).bounds(0, 0, sw - 66, 20).build(), 12, y);
 
         settingsPanel.addScrollWidget(Button.builder(
-                moduleKeyText(selected),
+                listeningModule == selected ? Component.literal("<…>").withStyle(ChatFormatting.YELLOW) : moduleKeyText(selected),
                 b -> {
+                    clearBindingListeners();
                     listeningModule = selected;
-                    b.setMessage(Component.literal("<…>").withStyle(ChatFormatting.YELLOW));
+                    buildSettings();
                 }
         ).bounds(0, 0, 60, 20).build(), 12 + sw - 60, y);
 
@@ -192,6 +203,17 @@ public class ZombiesConfigScreen extends Screen {
             if (!setting.isDisplay()) continue;
 
             switch (setting) {
+                case KeySetting keySetting -> {
+                    Component label = Component.literal(setting.getName() + ": ").append(
+                            Component.literal(listeningSetting == keySetting ? "<…>" : InputBindingUtils.displayName(keySetting.getValue()))
+                                    .withStyle(listeningSetting == keySetting ? ChatFormatting.YELLOW : ChatFormatting.AQUA));
+                    settingsPanel.addScrollWidget(Button.builder(label, button -> {
+                        clearBindingListeners();
+                        listeningSetting = keySetting;
+                        buildSettings();
+                    }).bounds(0, 0, sw, 20).build(), 12, y);
+                    y += ITEM_H;
+                }
                 case BooleanSetting booleanSetting -> {
                     settingsPanel.addScrollWidget(Button.builder(
                             boolText(setting.getName(), Boolean.TRUE.equals(booleanSetting.getValue())),
@@ -245,6 +267,10 @@ public class ZombiesConfigScreen extends Screen {
 
     @Override
     public boolean keyPressed(@NotNull KeyEvent event) {
+        if (this.listeningSetting != null) {
+            finishSettingBinding(event.key() == GLFW.GLFW_KEY_ESCAPE ? InputBindingUtils.NONE : event.key());
+            return true;
+        }
         if (this.listeningForKey) {
             int key = event.key();
             if (key != GLFW.GLFW_KEY_ESCAPE) {
@@ -264,6 +290,28 @@ public class ZombiesConfigScreen extends Screen {
             return true;
         }
         return super.keyPressed(event);
+    }
+
+    private void finishSettingBinding(int binding) {
+        // Unknown GLFW key events cannot be used by the physical-key polling path.
+        if (binding == GLFW.GLFW_KEY_UNKNOWN) return;
+        this.listeningSetting.setValue(binding);
+        clearBindingListeners();
+        ZombiesConfig.save();
+        buildSettings();
+    }
+
+    private void clearBindingListeners() {
+        this.listeningForKey = false;
+        this.listeningModule = null;
+        this.listeningSetting = null;
+        if (this.guiBindButton != null) this.guiBindButton.setMessage(bindText());
+    }
+
+    @Override
+    public void removed() {
+        clearBindingListeners();
+        super.removed();
     }
 
     private void rebuild() {
